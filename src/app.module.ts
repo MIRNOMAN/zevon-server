@@ -11,6 +11,7 @@ import { DatabaseModule } from './database/database.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { AddressesModule } from './modules/addresses/addresses.module.js';
+import { BannersModule } from './modules/banners/banners.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -30,6 +31,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     AuthModule,
     UsersModule,
     AddressesModule,
+    BannersModule,
   ],
   providers: [
     // 1. Global JWT guard — all routes are protected unless decorated with @Public()
