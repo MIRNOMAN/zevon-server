@@ -13,6 +13,7 @@ import { UsersModule } from './modules/users/users.module.js';
 import { AddressesModule } from './modules/addresses/addresses.module.js';
 import { BannersModule } from './modules/banners/banners.module.js';
 import { LookbooksModule } from './modules/lookbooks/lookbooks.module.js';
+import { FlashSalesModule } from './modules/flash-sales/flash-sales.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -34,6 +35,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     AddressesModule,
     BannersModule,
     LookbooksModule,
+    FlashSalesModule,
   ],
   providers: [
     // 1. Global JWT guard — all routes are protected unless decorated with @Public()

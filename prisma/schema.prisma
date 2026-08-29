@@ -501,32 +501,35 @@ model LookbookHotspot {
 // ──────────────────────────────────────────────────────────────
 
 model FlashSale {
-  id        String          @id @default(cuid())
-  title     String
-  slug      String          @unique
-  bannerUrl String?         @map("banner_url")
-  startTime DateTime        @map("start_time")
-  endTime   DateTime        @map("end_time")
-  isActive  Boolean         @default(true) @map("is_active")
-  createdAt DateTime        @default(now()) @map("created_at")
-  updatedAt DateTime        @updatedAt @map("updated_at")
+  id              String          @id @default(cuid())
+  title           String
+  slug            String          @unique
+  description     String?         @db.Text
+  bannerUrl       String?         @map("banner_url")
+  discountPercent Int?            @map("discount_percent")
+  startTime       DateTime        @map("start_time")
+  endTime         DateTime        @map("end_time")
+  isActive        Boolean         @default(true) @map("is_active")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
 
-  items     FlashSaleItem[]
+  items           FlashSaleItem[]
 
   @@index([startTime, endTime, isActive])
   @@map("flash_sales")
 }
 
 model FlashSaleItem {
-  id            String    @id @default(cuid())
-  flashSaleId   String    @map("flash_sale_id")
-  flashSale     FlashSale @relation(fields: [flashSaleId], references: [id], onDelete: Cascade)
-  productId     String    @map("product_id")
-  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  discountPrice Decimal   @map("discount_price") @db.Decimal(10, 2)
-  quantityLimit Int?      @map("quantity_limit")
-  soldCount     Int       @default(0) @map("sold_count")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id              String    @id @default(cuid())
+  flashSaleId     String    @map("flash_sale_id")
+  flashSale       FlashSale @relation(fields: [flashSaleId], references: [id], onDelete: Cascade)
+  productId       String    @map("product_id")
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  discountPrice   Decimal   @map("discount_price") @db.Decimal(10, 2)
+  discountPercent Int?      @map("discount_percent")
+  quantityLimit   Int       @default(100) @map("quantity_limit")
+  soldCount       Int       @default(0) @map("sold_count")
+  createdAt       DateTime  @default(now()) @map("created_at")
 
   @@unique([flashSaleId, productId])
   @@index([flashSaleId])
