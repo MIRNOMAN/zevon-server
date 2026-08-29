@@ -11,16 +11,578 @@ datasource db {
 }
 
 // ──────────────────────────────────────────────────────────────
-// Models
+// Enums
+// ──────────────────────────────────────────────────────────────
+
+enum Role {
+  CUSTOMER
+  ADMIN
+  MANAGER
+}
+
+enum AddressType {
+  SHIPPING
+  BILLING
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  COD
+  STRIPE
+  SSLCOMMERZ
+  BKASH
+  NAGAD
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  RECEIVED
+  REFUNDED
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum BannerPlacement {
+  HERO
+  SECTION_TOP
+  SECTION_MIDDLE
+  POPUP
+}
+
+// ──────────────────────────────────────────────────────────────
+// 1. User & Authentication
 // ──────────────────────────────────────────────────────────────
 
 model User {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  name           String
+  password       String
+  phone          String?
+  role           Role            @default(CUSTOMER)
+  isActive       Boolean         @default(true) @map("is_active")
+  avatarUrl      String?         @map("avatar_url")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  addresses      Address[]
+  orders         Order[]
+  reviews        Review[]
+  wishlist       Wishlist[]
+  returnRequests ReturnRequest[]
+  supportTickets SupportTicket[]
+
+  @@index([role])
+  @@index([email])
+  @@map("users")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 2. User Address
+// ──────────────────────────────────────────────────────────────
+
+model Address {
+  id           String      @id @default(cuid())
+  userId       String      @map("user_id")
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName     String      @map("full_name")
+  phone        String
+  addressLine1 String      @map("address_line_1")
+  addressLine2 String?     @map("address_line_2")
+  city         String
+  state        String?
+  postalCode   String      @map("postal_code")
+  country      String      @default("Bangladesh")
+  type         AddressType @default(SHIPPING)
+  isDefault    Boolean     @default(false) @map("is_default")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 3. Category
+// ──────────────────────────────────────────────────────────────
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?    @db.Text
+  imageUrl    String?    @map("image_url")
+  parentId    String?    @map("parent_id")
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryHierarchy")
+  products    Product[]
+  isActive    Boolean    @default(true) @map("is_active")
+  sortOrder   Int        @default(0) @map("sort_order")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([parentId])
+  @@map("categories")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 4. Product
+// ──────────────────────────────────────────────────────────────
+
+model Product {
+  id             String            @id @default(cuid())
+  title          String
+  slug           String            @unique
+  description    String            @db.Text
+  details        String?           @db.Text
+  basePrice      Decimal           @map("base_price") @db.Decimal(10, 2)
+  discountPrice  Decimal?          @map("discount_price") @db.Decimal(10, 2)
+  categoryId     String            @map("category_id")
+  category       Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  isFeatured     Boolean           @default(false) @map("is_featured")
+  isPublished    Boolean           @default(true) @map("is_published")
+  gender         String?
+  season         String?
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  variants       ProductVariant[]
+  images         ProductImage[]
+  reviews        Review[]
+  wishlists      Wishlist[]
+  orderItems     OrderItem[]
+  flashSaleItems FlashSaleItem[]
+  hotspots       LookbookHotspot[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([isFeatured, isPublished])
+  @@map("products")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 5. Product Variant (Clothing SKU, Color, Size, Stock)
+// ──────────────────────────────────────────────────────────────
+
+model ProductVariant {
+  id         String      @id @default(cuid())
+  productId  String      @map("product_id")
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku        String      @unique
+  color      String
+  colorCode  String      @map("color_code")
+  size       String
+  stock      Int         @default(0)
+  extraPrice Decimal     @default(0.00) @map("extra_price") @db.Decimal(10, 2)
+  imageUrl   String?     @map("image_url")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  orderItems OrderItem[]
+
+  @@unique([productId, color, size])
+  @@index([sku])
+  @@index([productId])
+  @@map("product_variants")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 6. Product Image
+// ──────────────────────────────────────────────────────────────
+
+model ProductImage {
   id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  password  String
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  altText   String?  @map("alt_text")
+  isPrimary Boolean  @default(false) @map("is_primary")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 7. Review
+// ──────────────────────────────────────────────────────────────
+
+model Review {
+  id                 String   @id @default(cuid())
+  userId             String   @map("user_id")
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId          String   @map("product_id")
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  rating             Int
+  comment            String?  @db.Text
+  isVerifiedPurchase Boolean  @default(false) @map("is_verified_purchase")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@index([productId])
+  @@index([userId])
+  @@map("reviews")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 8. Wishlist
+// ──────────────────────────────────────────────────────────────
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+  @@map("wishlists")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 9. Coupon
+// ──────────────────────────────────────────────────────────────
+
+model Coupon {
+  id                String       @id @default(cuid())
+  code              String       @unique
+  discountType      DiscountType @default(PERCENTAGE) @map("discount_type")
+  discountValue     Decimal      @map("discount_value") @db.Decimal(10, 2)
+  minOrderAmount    Decimal?     @map("min_order_amount") @db.Decimal(10, 2)
+  maxDiscountAmount Decimal?     @map("max_discount_amount") @db.Decimal(10, 2)
+  startDate         DateTime     @map("start_date")
+  endDate           DateTime     @map("end_date")
+  usageLimit        Int?         @map("usage_limit")
+  usedCount         Int          @default(0) @map("used_count")
+  isActive          Boolean      @default(true) @map("is_active")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  orders            Order[]
+
+  @@index([code])
+  @@map("coupons")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 10. Shipping Zone
+// ──────────────────────────────────────────────────────────────
+
+model ShippingZone {
+  id                    String   @id @default(cuid())
+  name                  String
+  cities                String[]
+  cost                  Decimal  @db.Decimal(10, 2)
+  estimatedDeliveryDays String   @map("estimated_delivery_days")
+  isActive              Boolean  @default(true) @map("is_active")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  orders                Order[]
+
+  @@map("shipping_zones")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 11. Order & Order Item
+// ──────────────────────────────────────────────────────────────
+
+model Order {
+  id              String         @id @default(cuid())
+  orderNumber     String         @unique @map("order_number")
+  userId          String         @map("user_id")
+  user            User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  status          OrderStatus    @default(PENDING)
+  paymentStatus   PaymentStatus  @default(PENDING) @map("payment_status")
+  paymentMethod   PaymentMethod  @default(COD) @map("payment_method")
+  subtotal        Decimal        @db.Decimal(10, 2)
+  discountAmount  Decimal        @default(0.00) @map("discount_amount") @db.Decimal(10, 2)
+  shippingCost    Decimal        @default(0.00) @map("shipping_cost") @db.Decimal(10, 2)
+  totalAmount     Decimal        @map("total_amount") @db.Decimal(10, 2)
+  couponId        String?        @map("coupon_id")
+  coupon          Coupon?        @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  shippingZoneId  String?        @map("shipping_zone_id")
+  shippingZone    ShippingZone?  @relation(fields: [shippingZoneId], references: [id], onDelete: SetNull)
+  shippingAddress Json           @map("shipping_address")
+  billingAddress  Json?          @map("billing_address")
+  notes           String?        @db.Text
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  items           OrderItem[]
+  returnRequests  ReturnRequest[]
+
+  @@index([orderNumber])
+  @@index([userId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id             String          @id @default(cuid())
+  orderId        String          @map("order_id")
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId      String          @map("product_id")
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variantId      String?         @map("variant_id")
+  variant        ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  productTitle   String          @map("product_title")
+  sku            String?
+  size           String?
+  color          String?
+  unitPrice      Decimal         @map("unit_price") @db.Decimal(10, 2)
+  quantity       Int
+  totalPrice     Decimal         @map("total_price") @db.Decimal(10, 2)
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  returnRequests ReturnRequest[]
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
+  @@map("order_items")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 12. Return Request
+// ──────────────────────────────────────────────────────────────
+
+model ReturnRequest {
+  id           String       @id @default(cuid())
+  orderId      String       @map("order_id")
+  order        Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItemId  String       @map("order_item_id")
+  orderItem    OrderItem    @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  userId       String       @map("user_id")
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason       String       @db.Text
+  status       ReturnStatus @default(REQUESTED)
+  adminNotes   String?      @map("admin_notes") @db.Text
+  refundAmount Decimal?     @map("refund_amount") @db.Decimal(10, 2)
+  proofImages  String[]     @map("proof_images")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([status])
+  @@map("return_requests")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 13. Support Ticket
+// ──────────────────────────────────────────────────────────────
+
+model SupportTicket {
+  id           String         @id @default(cuid())
+  ticketNumber String         @unique @map("ticket_number")
+  userId       String         @map("user_id")
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject      String
+  message      String         @db.Text
+  status       TicketStatus   @default(OPEN)
+  priority     TicketPriority @default(MEDIUM)
+  replies      Json?
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  @@index([ticketNumber])
+  @@index([userId])
+  @@index([status])
+  @@map("support_tickets")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 14. Banner
+// ──────────────────────────────────────────────────────────────
+
+model Banner {
+  id             String          @id @default(cuid())
+  title          String
+  subtitle       String?
+  imageUrl       String          @map("image_url")
+  mobileImageUrl String?         @map("mobile_image_url")
+  linkUrl        String?         @map("link_url")
+  placement      BannerPlacement @default(HERO)
+  sortOrder      Int             @default(0) @map("sort_order")
+  isActive       Boolean         @default(true) @map("is_active")
+  startDate      DateTime?       @map("start_date")
+  endDate        DateTime?       @map("end_date")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  @@index([placement, isActive])
+  @@map("banners")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 15. Lookbook & Lookbook Hotspot
+// ──────────────────────────────────────────────────────────────
+
+model Lookbook {
+  id            String            @id @default(cuid())
+  title         String
+  slug          String            @unique
+  description   String?           @db.Text
+  coverImageUrl String            @map("cover_image_url")
+  isActive      Boolean           @default(true) @map("is_active")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  hotspots      LookbookHotspot[]
+
+  @@map("lookbooks")
+}
+
+model LookbookHotspot {
+  id          String   @id @default(cuid())
+  lookbookId  String   @map("lookbook_id")
+  lookbook    Lookbook @relation(fields: [lookbookId], references: [id], onDelete: Cascade)
+  productId   String   @map("product_id")
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  coordinateX Float    @map("coordinate_x") // Percentage X (0-100)
+  coordinateY Float    @map("coordinate_y") // Percentage Y (0-100)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([lookbookId])
+  @@index([productId])
+  @@map("lookbook_hotspots")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 16. Flash Sale & Flash Sale Item
+// ──────────────────────────────────────────────────────────────
+
+model FlashSale {
+  id        String          @id @default(cuid())
+  title     String
+  slug      String          @unique
+  bannerUrl String?         @map("banner_url")
+  startTime DateTime        @map("start_time")
+  endTime   DateTime        @map("end_time")
+  isActive  Boolean         @default(true) @map("is_active")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  items     FlashSaleItem[]
+
+  @@index([startTime, endTime, isActive])
+  @@map("flash_sales")
+}
+
+model FlashSaleItem {
+  id            String    @id @default(cuid())
+  flashSaleId   String    @map("flash_sale_id")
+  flashSale     FlashSale @relation(fields: [flashSaleId], references: [id], onDelete: Cascade)
+  productId     String    @map("product_id")
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  discountPrice Decimal   @map("discount_price") @db.Decimal(10, 2)
+  quantityLimit Int?      @map("quantity_limit")
+  soldCount     Int       @default(0) @map("sold_count")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@unique([flashSaleId, productId])
+  @@index([flashSaleId])
+  @@index([productId])
+  @@map("flash_sale_items")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 17. FAQ
+// ──────────────────────────────────────────────────────────────
+
+model FAQ {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String   @db.Text
+  category  String   @default("General")
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@map("users")
+  @@index([category, isActive])
+  @@map("faqs")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 18. Sustainability Story
+// ──────────────────────────────────────────────────────────────
+
+model SustainabilityStory {
+  id            String    @id @default(cuid())
+  title         String
+  slug          String    @unique
+  summary       String    @db.Text
+  content       String    @db.Text
+  coverImageUrl String    @map("cover_image_url")
+  publishedAt   DateTime? @map("published_at")
+  isPublished   Boolean   @default(true) @map("is_published")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@map("sustainability_stories")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 19. Store Location
+// ──────────────────────────────────────────────────────────────
+
+model StoreLocation {
+  id            String   @id @default(cuid())
+  name          String
+  address       String
+  city          String
+  phone         String
+  email         String?
+  openingHours  String   @map("opening_hours")
+  latitude      Float?
+  longitude     Float?
+  googleMapsUrl String?  @map("google_maps_url")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("store_locations")
 }
