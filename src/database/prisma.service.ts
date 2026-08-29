@@ -13,9 +13,23 @@ export class PrismaService
 {
   private readonly logger = new Logger(PrismaService.name);
 
+  constructor() {
+    super({
+      log:
+        process.env.NODE_ENV === 'development'
+          ? ['query', 'info', 'warn', 'error']
+          : ['error', 'warn'],
+    });
+  }
+
   async onModuleInit() {
-    await this.$connect();
-    this.logger.log('Prisma connected to the database');
+    try {
+      await this.$connect();
+      this.logger.log('Prisma connected to the database');
+    } catch (error) {
+      this.logger.error('Failed to connect Prisma to the database', error);
+      throw error;
+    }
   }
 
   async onModuleDestroy() {

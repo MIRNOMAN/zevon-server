@@ -1,4 +1,4 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -16,6 +16,7 @@ async function bootstrap() {
   });
 
   const configService = app.get(ConfigService);
+  const reflector = app.get(Reflector);
   const port = configService.get<number>('PORT', 3000);
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
   const corsOrigin = configService.get<string>('CORS_ORIGIN', '*');
@@ -23,7 +24,7 @@ async function bootstrap() {
   // ── Global Prefix ────────────────────────────────────────────
   app.setGlobalPrefix('api/v1');
 
-  // ── Security ─────────────────────────────────────────────────
+  // ── Security & Performance Middlewares ───────────────────────
   app.use(helmet());
   app.use(compression());
   app.use(cookieParser());
@@ -34,7 +35,12 @@ async function bootstrap() {
       corsOrigin === '*' ? '*' : corsOrigin.split(',').map((o) => o.trim()),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'X-Requested-With',
+    ],
   });
 
   // ── Global Pipes ─────────────────────────────────────────────
@@ -53,16 +59,26 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(
     new LoggingInterceptor(),
-    new TransformInterceptor(),
+    new TransformInterceptor(reflector),
   );
 
   // ── Swagger / OpenAPI ────────────────────────────────────────
   if (nodeEnv !== 'production') {
     const swaggerConfig = new DocumentBuilder()
-      .setTitle('My NestJS Backend')
-      .setDescription('Production-ready REST API')
+      .setTitle('Clothing E-Commerce API')
+      .setDescription('Production-ready E-Commerce REST API')
       .setVersion('1.0')
-      .addBearerAuth()
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'JWT',
+          description: 'Enter JWT Token',
+          in: 'header',
+        },
+        'JWT-auth',
+      )
       .addServer(`http://localhost:${port}`, 'Local Development')
       .build();
 
@@ -80,7 +96,7 @@ async function bootstrap() {
   await app.listen(port);
 
   const logger = new Logger('Bootstrap');
-  logger.log(`🚀 Server running on http://localhost:${port}`);
+  logger.log(`🚀 Server running on http://localhost:${port}/api/v1`);
   logger.log(`📚 Swagger docs at http://localhost:${port}/api/docs`);
   logger.log(`🌍 Environment: ${nodeEnv}`);
 }
