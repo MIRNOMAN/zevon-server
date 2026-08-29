@@ -14,9 +14,13 @@ export const envSchema = z.object({
   // Database
   DATABASE_URL: z.string().url(),
 
-  // JWT
-  JWT_SECRET: z.string().min(8),
-  JWT_EXPIRES_IN: z.string().default('7d'),
+  // JWT & Security
+  JWT_SECRET: z.string().min(8).optional(),
+  JWT_ACCESS_SECRET: z.string().min(8).optional(),
+  JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
+  JWT_REFRESH_SECRET: z.string().min(8).optional(),
+  JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
+  ADMIN_SECRET_KEY: z.string().optional().default('zevon-admin-secret-2026'),
 
   // CORS
   CORS_ORIGIN: z.string().default('*'),

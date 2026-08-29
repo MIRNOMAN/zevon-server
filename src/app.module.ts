@@ -11,6 +11,7 @@ import { DatabaseModule } from './database/database.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
+import { RolesGuard } from './common/guards/roles.guard.js';
 
 @Module({
   imports: [
@@ -29,10 +30,15 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
     UsersModule,
   ],
   providers: [
-    // Global JWT guard — all routes are protected unless decorated with @Public()
+    // 1. Global JWT guard — all routes are protected unless decorated with @Public()
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    // 2. Global Roles guard — verifies user role permissions against @Roles(...) metadata
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })

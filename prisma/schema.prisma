@@ -89,23 +89,24 @@ enum BannerPlacement {
 // ──────────────────────────────────────────────────────────────
 
 model User {
-  id             String          @id @default(cuid())
-  email          String          @unique
-  name           String
-  password       String
-  phone          String?
-  role           Role            @default(CUSTOMER)
-  isActive       Boolean         @default(true) @map("is_active")
-  avatarUrl      String?         @map("avatar_url")
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @updatedAt @map("updated_at")
+  id                 String          @id @default(cuid())
+  email              String          @unique
+  name               String
+  password           String
+  phone              String?
+  role               Role            @default(CUSTOMER)
+  isActive           Boolean         @default(true) @map("is_active")
+  avatarUrl          String?         @map("avatar_url")
+  hashedRefreshToken String?         @map("hashed_refresh_token")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
 
-  addresses      Address[]
-  orders         Order[]
-  reviews        Review[]
-  wishlist       Wishlist[]
-  returnRequests ReturnRequest[]
-  supportTickets SupportTicket[]
+  addresses          Address[]
+  orders             Order[]
+  reviews            Review[]
+  wishlist           Wishlist[]
+  returnRequests     ReturnRequest[]
+  supportTickets     SupportTicket[]
 
   @@index([role])
   @@index([email])

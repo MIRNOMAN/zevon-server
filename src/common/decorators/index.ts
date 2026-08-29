@@ -4,3 +4,4 @@ export {
   ResponseMessage,
   RESPONSE_MESSAGE_KEY,
 } from './response-message.decorator.js';
+export { Roles, ROLES_KEY } from './roles.decorator.js';
