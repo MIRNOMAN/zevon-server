@@ -468,12 +468,16 @@ model Lookbook {
   slug          String            @unique
   description   String?           @db.Text
   coverImageUrl String            @map("cover_image_url")
+  tags          String[]          @default([])
   isActive      Boolean           @default(true) @map("is_active")
+  sortOrder     Int               @default(0) @map("sort_order")
   createdAt     DateTime          @default(now()) @map("created_at")
   updatedAt     DateTime          @updatedAt @map("updated_at")
 
   hotspots      LookbookHotspot[]
 
+  @@index([slug])
+  @@index([isActive, sortOrder])
   @@map("lookbooks")
 }
 
