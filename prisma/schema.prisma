@@ -258,10 +258,12 @@ model Review {
   product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   rating             Int
   comment            String?  @db.Text
-  isVerifiedPurchase Boolean  @default(false) @map("is_verified_purchase")
+  images             String[] @default([])
+  isVerifiedPurchase Boolean  @default(true) @map("is_verified_purchase")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
+  @@unique([userId, productId])
   @@index([productId])
   @@index([userId])
   @@map("reviews")
