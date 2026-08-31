@@ -161,31 +161,63 @@ export class ProductsService {
   }
 
   /**
-   * Public & Admin: Advanced Product Query with Filters, Search, and Pagination.
+   * Public & Admin: Advanced Product Catalog Query Engine.
+   * Dynamic Multi-Filtering: categorySlug (hierarchical), price range, colors, sizes, inStock availability.
+   * Full-Text Search across titles, fabric specs, tags, and SKUs.
+   * Multi-Sorting: price-asc, price-desc, newest, rating, popular.
+   * Paginated with Facet Metadata for frontend filter sidebars.
    */
   async findAll(query: ProductQueryDto) {
     const {
       page = 1,
       limit = 20,
       search,
+      categorySlug,
       categoryId,
       gender,
       season,
+      sizes,
       size,
+      colors,
       color,
       minPrice,
       maxPrice,
+      inStock,
       isFeatured,
-      isPublished,
+      isPublished = true,
       sortBy = ProductSortOption.NEWEST,
     } = query;
 
     const skip = (page - 1) * limit;
 
+    // 1. Resolve Hierarchical Category IDs if categorySlug or categoryId is given
+    let targetCategoryIds: string[] | undefined;
+    if (categorySlug) {
+      targetCategoryIds =
+        await this.getCategoryAndChildrenIdsBySlug(categorySlug);
+      if (targetCategoryIds.length === 0) {
+        return this.emptyQueryResult(page, limit);
+      }
+    } else if (categoryId) {
+      targetCategoryIds = [categoryId];
+    }
+
+    // 2. Parse Size & Color filters
+    const targetSizes = (sizes && sizes.length > 0 ? sizes : size ? [size] : [])
+      .map((s) => s.toUpperCase().trim())
+      .filter(Boolean);
+
+    const targetColors = (
+      colors && colors.length > 0 ? colors : color ? [color] : []
+    )
+      .map((c) => c.trim())
+      .filter(Boolean);
+
+    // 3. Construct Prisma Where Clause
     const where: Prisma.ProductWhereInput = {
       ...(isPublished !== undefined ? { isPublished } : {}),
       ...(isFeatured !== undefined ? { isFeatured } : {}),
-      ...(categoryId ? { categoryId } : {}),
+      ...(targetCategoryIds ? { categoryId: { in: targetCategoryIds } } : {}),
       ...(gender ? { gender: { equals: gender, mode: 'insensitive' } } : {}),
       ...(season ? { season: { equals: season, mode: 'insensitive' } } : {}),
       ...(minPrice !== undefined || maxPrice !== undefined
@@ -201,41 +233,66 @@ export class ProductsService {
             OR: [
               { title: { contains: search, mode: 'insensitive' } },
               { description: { contains: search, mode: 'insensitive' } },
+              { details: { contains: search, mode: 'insensitive' } },
               { fabricSpecs: { contains: search, mode: 'insensitive' } },
               { tags: { has: search } },
               {
                 variants: {
-                  some: { sku: { contains: search, mode: 'insensitive' } },
+                  some: {
+                    OR: [
+                      { sku: { contains: search, mode: 'insensitive' } },
+                      { color: { contains: search, mode: 'insensitive' } },
+                    ],
+                  },
                 },
               },
             ],
           }
         : {}),
-      ...(size || color
+      ...(targetSizes.length > 0 || targetColors.length > 0 || inStock === true
         ? {
             variants: {
               some: {
-                ...(size
-                  ? { size: { equals: size.toUpperCase().trim() } }
+                ...(targetSizes.length > 0
+                  ? { size: { in: targetSizes } }
                   : {}),
-                ...(color
-                  ? { color: { equals: color.trim(), mode: 'insensitive' } }
+                ...(targetColors.length > 0
+                  ? { color: { in: targetColors, mode: 'insensitive' } }
                   : {}),
+                ...(inStock === true ? { stock: { gt: 0 } } : {}),
               },
             },
           }
         : {}),
     };
 
-    let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' };
-    if (sortBy === ProductSortOption.PRICE_ASC) {
-      orderBy = { basePrice: 'asc' };
-    } else if (sortBy === ProductSortOption.PRICE_DESC) {
-      orderBy = { basePrice: 'desc' };
-    } else if (sortBy === ProductSortOption.POPULAR) {
-      orderBy = { isFeatured: 'desc' };
+    // 4. Construct Sorting Strategy
+    let orderBy:
+      | Prisma.ProductOrderByWithRelationInput
+      | Prisma.ProductOrderByWithRelationInput[] = {
+      createdAt: 'desc',
+    };
+
+    switch (sortBy) {
+      case ProductSortOption.PRICE_ASC:
+        orderBy = { basePrice: 'asc' };
+        break;
+      case ProductSortOption.PRICE_DESC:
+        orderBy = { basePrice: 'desc' };
+        break;
+      case ProductSortOption.RATING:
+        orderBy = [{ reviews: { _count: 'desc' } }, { createdAt: 'desc' }];
+        break;
+      case ProductSortOption.POPULAR:
+        orderBy = [{ isFeatured: 'desc' }, { createdAt: 'desc' }];
+        break;
+      case ProductSortOption.NEWEST:
+      default:
+        orderBy = { createdAt: 'desc' };
+        break;
     }
 
+    // 5. Execute DB Query
     const [total, products] = await Promise.all([
       this.prisma.product.count({ where }),
       this.prisma.product.findMany({
@@ -266,6 +323,7 @@ export class ProductsService {
       }),
     ]);
 
+    // 6. Format Product Output with Inventory Metrics & Color Swatches
     const formatted = products.map((p) => {
       const totalStock = p.variants.reduce((acc, v) => acc + v.stock, 0);
       const availableSizes = Array.from(new Set(p.variants.map((v) => v.size)));
@@ -278,22 +336,70 @@ export class ProductsService {
       ).map((str) => JSON.parse(str) as { color: string; colorCode: string });
 
       return {
-        ...p,
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        description: p.description,
+        details: p.details,
+        fabricSpecs: p.fabricSpecs,
+        washCare: p.washCare,
+        tags: p.tags,
+        basePrice: p.basePrice,
+        discountPrice: p.discountPrice,
+        category: p.category,
+        isFeatured: p.isFeatured,
+        isPublished: p.isPublished,
+        gender: p.gender,
+        season: p.season,
+        primaryImage:
+          p.images.find((img) => img.isPrimary) || p.images[0] || null,
+        images: p.images,
+        variants: p.variants,
         totalStock,
         inStock: totalStock > 0,
         availableSizes,
         availableColors,
         reviewCount: p._count.reviews,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
       };
     });
 
+    // 7. Aggregate Facets for Frontend Filters (Color swatches, sizes, price min/max)
+    const allMatchingVariants = products.flatMap((p) => p.variants);
+    const facetSizes = Array.from(
+      new Set(allMatchingVariants.map((v) => v.size)),
+    );
+    const facetColors = Array.from(
+      new Set(
+        allMatchingVariants.map((v) =>
+          JSON.stringify({ color: v.color, colorCode: v.colorCode }),
+        ),
+      ),
+    ).map((str) => JSON.parse(str) as { color: string; colorCode: string });
+
+    const prices = products.map((p) => Number(p.basePrice));
+    const priceRange = {
+      min: prices.length > 0 ? Math.min(...prices) : 0,
+      max: prices.length > 0 ? Math.max(...prices) : 0,
+    };
+
+    const totalPages = Math.ceil(total / limit);
+
     return {
       products: formatted,
+      facets: {
+        availableSizes: facetSizes,
+        availableColors: facetColors,
+        priceRange,
+      },
       meta: {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
       },
     };
   }
@@ -581,7 +687,60 @@ export class ProductsService {
     });
   }
 
-  // ── Helper ───────────────────────────────────────────────────
+  // ── Helper Methods ──────────────────────────────────────────
+
+  private async getCategoryAndChildrenIdsBySlug(
+    slug: string,
+  ): Promise<string[]> {
+    const category = await this.prisma.category.findUnique({
+      where: { slug },
+      include: {
+        children: {
+          select: {
+            id: true,
+            children: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!category) {
+      return [];
+    }
+
+    const ids = [category.id];
+    for (const child of category.children) {
+      ids.push(child.id);
+      for (const grandChild of child.children) {
+        ids.push(grandChild.id);
+      }
+    }
+
+    return ids;
+  }
+
+  private emptyQueryResult(page: number, limit: number) {
+    return {
+      products: [],
+      facets: {
+        availableSizes: [],
+        availableColors: [],
+        priceRange: { min: 0, max: 0 },
+      },
+      meta: {
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+      },
+    };
+  }
 
   private slugify(text: string): string {
     return text
