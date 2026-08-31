@@ -172,6 +172,9 @@ model Product {
   slug           String            @unique
   description    String            @db.Text
   details        String?           @db.Text
+  fabricSpecs    String?           @map("fabric_specs") @db.Text
+  washCare       String?           @map("wash_care") @db.Text
+  tags           String[]          @default([])
   basePrice      Decimal           @map("base_price") @db.Decimal(10, 2)
   discountPrice  Decimal?          @map("discount_price") @db.Decimal(10, 2)
   categoryId     String            @map("category_id")
