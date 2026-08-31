@@ -19,6 +19,7 @@ import { ProductsModule } from './modules/products/products.module.js';
 import { WishlistsModule } from './modules/wishlists/wishlists.module.js';
 import { CartsModule } from './modules/carts/carts.module.js';
 import { ReviewsModule } from './modules/reviews/reviews.module.js';
+import { CouponsModule } from './modules/coupons/coupons.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -46,6 +47,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     WishlistsModule,
     CartsModule,
     ReviewsModule,
+    CouponsModule,
   ],
   providers: [
     // 1. Global JWT guard — all routes are protected unless decorated with @Public()

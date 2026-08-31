@@ -325,6 +325,7 @@ model CartItem {
 model Coupon {
   id                String       @id @default(cuid())
   code              String       @unique
+  description       String?      @db.Text
   discountType      DiscountType @default(PERCENTAGE) @map("discount_type")
   discountValue     Decimal      @map("discount_value") @db.Decimal(10, 2)
   minOrderAmount    Decimal?     @map("min_order_amount") @db.Decimal(10, 2)
@@ -333,6 +334,7 @@ model Coupon {
   endDate           DateTime     @map("end_date")
   usageLimit        Int?         @map("usage_limit")
   usedCount         Int          @default(0) @map("used_count")
+  perUserLimit      Int?         @default(1) @map("per_user_limit")
   isActive          Boolean      @default(true) @map("is_active")
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")
