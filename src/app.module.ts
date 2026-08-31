@@ -16,6 +16,8 @@ import { LookbooksModule } from './modules/lookbooks/lookbooks.module.js';
 import { FlashSalesModule } from './modules/flash-sales/flash-sales.module.js';
 import { CategoriesModule } from './modules/categories/categories.module.js';
 import { ProductsModule } from './modules/products/products.module.js';
+import { WishlistsModule } from './modules/wishlists/wishlists.module.js';
+import { CartsModule } from './modules/carts/carts.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -40,6 +42,8 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     FlashSalesModule,
     CategoriesModule,
     ProductsModule,
+    WishlistsModule,
+    CartsModule,
   ],
   providers: [
     // 1. Global JWT guard — all routes are protected unless decorated with @Public()

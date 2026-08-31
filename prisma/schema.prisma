@@ -105,6 +105,7 @@ model User {
   orders             Order[]
   reviews            Review[]
   wishlist           Wishlist[]
+  cart               Cart?
   returnRequests     ReturnRequest[]
   supportTickets     SupportTicket[]
 
@@ -219,6 +220,7 @@ model ProductVariant {
   updatedAt  DateTime    @updatedAt @map("updated_at")
 
   orderItems OrderItem[]
+  cartItems  CartItem[]
 
   @@unique([productId, color, size])
   @@index([sku])
@@ -281,6 +283,37 @@ model Wishlist {
   @@index([userId])
   @@index([productId])
   @@map("wishlists")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 8.1. Shopping Cart & Cart Items
+// ──────────────────────────────────────────────────────────────
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique @map("user_id")
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  @@map("carts")
+}
+
+model CartItem {
+  id               String         @id @default(cuid())
+  cartId           String         @map("cart_id")
+  cart             Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productVariantId String         @map("product_variant_id")
+  variant          ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  quantity         Int            @default(1)
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  @@unique([cartId, productVariantId])
+  @@index([cartId])
+  @@index([productVariantId])
+  @@map("cart_items")
 }
 
 // ──────────────────────────────────────────────────────────────
