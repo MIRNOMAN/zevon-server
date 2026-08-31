@@ -21,6 +21,7 @@ import {
   CreateProductDto,
   UpdateProductDto,
   ProductQueryDto,
+  SizeRecommendationDto,
 } from './dto/index.js';
 import { Public } from '../../common/decorators/public.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
@@ -78,6 +79,46 @@ export class ProductsController {
   })
   getCrossSellsBySlug(@Param('slug') slug: string) {
     return this.productsService.getCrossSellsBySlug(slug);
+  }
+
+  @Public()
+  @Post('recommend-size')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Size recommendation calculated successfully')
+  @ApiOperation({
+    summary:
+      'Custom Fit & Size Recommendation Engine: Multi-factor body match algorithm (Public - Height, Weight, Chest, Waist, Fit Preference)',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description:
+      'Calculates best matching clothing size (S, M, L, XL, XXL) with match percentage (e.g. 94%), BMI, fit feel notes, and alternative sizes',
+  })
+  recommendSize(@Body() sizeRecommendationDto: SizeRecommendationDto) {
+    return this.productsService.recommendSize(sizeRecommendationDto);
+  }
+
+  @Public()
+  @Post(':id/recommend-size')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Product size recommendation calculated successfully')
+  @ApiOperation({
+    summary:
+      'Custom Fit & Size Recommendation for a specific Product with Real-Time Stock Availability (Public)',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description:
+      'Size recommendation with real-time stock verification for the recommended size',
+  })
+  recommendProductSize(
+    @Param('id') id: string,
+    @Body() sizeRecommendationDto: SizeRecommendationDto,
+  ) {
+    return this.productsService.recommendSize({
+      ...sizeRecommendationDto,
+      productId: id,
+    });
   }
 
   // ── Admin Catalog Operations (RBAC Protected) ────────────────

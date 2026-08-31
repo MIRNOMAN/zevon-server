@@ -11,6 +11,9 @@ import {
   UpdateProductDto,
   ProductQueryDto,
   ProductSortOption,
+  SizeRecommendationDto,
+  FitPreference,
+  GenderPreference,
 } from './dto/index.js';
 
 @Injectable()
@@ -772,6 +775,237 @@ export class ProductsService {
   }
 
   /**
+   * Public: Custom Fit & Size Recommendation Algorithm.
+   * Compares user Height, Weight, Chest, Waist, and Fit Preference against standard clothing size charts.
+   * Returns recommended size, best match percentage (e.g. 94%), fit feel explanation, and size breakdown.
+   */
+  async recommendSize(dto: SizeRecommendationDto) {
+    const {
+      heightCm,
+      weightKg,
+      chestInches,
+      waistInches,
+      fitPreference = FitPreference.REGULAR,
+      gender = GenderPreference.MEN,
+      productId,
+    } = dto;
+
+    // 1. Calculate Body Mass Index (BMI)
+    const heightM = heightCm / 100;
+    const bmi = Number((weightKg / (heightM * heightM)).toFixed(1));
+    let bmiCategory = 'Normal';
+    if (bmi < 18.5) bmiCategory = 'Slim / Underweight';
+    else if (bmi >= 25 && bmi < 30) bmiCategory = 'Overweight';
+    else if (bmi >= 30) bmiCategory = 'Heavy / Muscular';
+
+    // 2. Estimate Chest and Waist if omitted using anthropometric formulas
+    const estimatedChest =
+      chestInches ?? this.estimateChestInches(heightCm, weightKg, gender);
+    const estimatedWaist =
+      waistInches ?? this.estimateWaistInches(heightCm, weightKg, gender);
+
+    // 3. Apply Fit Preference Bias to Target Measurements
+    let chestOffset = 0;
+    let fitDescription = 'Standard regular fit draping naturally';
+    switch (fitPreference) {
+      case FitPreference.OVERSIZED:
+        chestOffset = 2.0;
+        fitDescription =
+          'Boxy oversized streetwear silhouette with generous chest and drop shoulder drape';
+        break;
+      case FitPreference.RELAXED:
+        chestOffset = 1.0;
+        fitDescription =
+          'Comfortable relaxed fit with extra breathing room around chest and arms';
+        break;
+      case FitPreference.SLIM:
+        chestOffset = -1.0;
+        fitDescription =
+          'Tailored athletic fit contouring closely to chest and waist';
+        break;
+      case FitPreference.REGULAR:
+      default:
+        chestOffset = 0.0;
+        fitDescription = 'Standard regular fit draping naturally';
+        break;
+    }
+
+    const adjustedChest = estimatedChest + chestOffset;
+    const adjustedWaist = estimatedWaist + chestOffset * 0.5;
+
+    // 4. Standard Apparel Sizing Matrix (Men/Unisex Topwear & Streetwear)
+    const sizeSpecs = [
+      {
+        size: 'S',
+        chestMin: 36,
+        chestMax: 38,
+        chestIdeal: 37,
+        waistIdeal: 30,
+        heightIdeal: 165,
+        weightIdeal: 58,
+      },
+      {
+        size: 'M',
+        chestMin: 39,
+        chestMax: 41,
+        chestIdeal: 40,
+        waistIdeal: 33,
+        heightIdeal: 173,
+        weightIdeal: 69,
+      },
+      {
+        size: 'L',
+        chestMin: 42,
+        chestMax: 44,
+        chestIdeal: 43,
+        waistIdeal: 36,
+        heightIdeal: 180,
+        weightIdeal: 80,
+      },
+      {
+        size: 'XL',
+        chestMin: 45,
+        chestMax: 47,
+        chestIdeal: 46,
+        waistIdeal: 39,
+        heightIdeal: 185,
+        weightIdeal: 91,
+      },
+      {
+        size: 'XXL',
+        chestMin: 48,
+        chestMax: 51,
+        chestIdeal: 49.5,
+        waistIdeal: 42.5,
+        heightIdeal: 190,
+        weightIdeal: 104,
+      },
+    ];
+
+    // 5. Evaluate Multi-Factor Match Score for each Size
+    const scoredSizes = sizeSpecs.map((spec) => {
+      const chestScore = this.calcDimensionScore(
+        adjustedChest,
+        spec.chestIdeal,
+        3.5,
+      );
+      const weightScore = this.calcDimensionScore(
+        weightKg,
+        spec.weightIdeal,
+        11,
+      );
+      const heightScore = this.calcDimensionScore(
+        heightCm,
+        spec.heightIdeal,
+        11,
+      );
+      const waistScore = this.calcDimensionScore(
+        adjustedWaist,
+        spec.waistIdeal,
+        3.5,
+      );
+
+      // Weights: Chest (40%), Weight (30%), Height (20%), Waist (10%)
+      const totalScore = Math.round(
+        0.4 * chestScore +
+          0.3 * weightScore +
+          0.2 * heightScore +
+          0.1 * waistScore,
+      );
+
+      return {
+        size: spec.size,
+        matchPercentage: Math.max(15, Math.min(99, totalScore)),
+        chestTargetInches: `${spec.chestMin}-${spec.chestMax}"`,
+      };
+    });
+
+    // Sort descending by match score
+    scoredSizes.sort((a, b) => b.matchPercentage - a.matchPercentage);
+
+    const primaryRecommendation = scoredSizes[0];
+    const secondaryRecommendation = scoredSizes[1];
+
+    // 6. If Product ID is supplied, check variant availability for the recommended size
+    let productAvailability: {
+      productId: string;
+      recommendedSizeInStock: boolean;
+      availableStock: number;
+      matchingVariants: Array<{
+        variantId: string;
+        sku: string;
+        color: string;
+        colorCode: string;
+        stock: number;
+      }>;
+    } | null = null;
+
+    if (productId) {
+      const product = await this.prisma.product.findUnique({
+        where: { id: productId },
+        include: {
+          variants: {
+            where: {
+              size: primaryRecommendation.size,
+            },
+            select: {
+              id: true,
+              sku: true,
+              color: true,
+              colorCode: true,
+              stock: true,
+            },
+          },
+        },
+      });
+
+      if (product) {
+        const totalStockForSize = product.variants.reduce(
+          (sum, v) => sum + v.stock,
+          0,
+        );
+        productAvailability = {
+          productId,
+          recommendedSizeInStock: totalStockForSize > 0,
+          availableStock: totalStockForSize,
+          matchingVariants: product.variants.map((v) => ({
+            variantId: v.id,
+            sku: v.sku,
+            color: v.color,
+            colorCode: v.colorCode,
+            stock: v.stock,
+          })),
+        };
+      }
+    }
+
+    return {
+      recommendedSize: primaryRecommendation.size,
+      matchPercentage: primaryRecommendation.matchPercentage,
+      fitFeel: fitDescription,
+      userBodyProfile: {
+        heightCm,
+        weightKg,
+        chestInches: Number(estimatedChest.toFixed(1)),
+        waistInches: Number(estimatedWaist.toFixed(1)),
+        bmi,
+        bmiCategory,
+        fitPreference,
+      },
+      alternativeSize: {
+        size: secondaryRecommendation.size,
+        matchPercentage: secondaryRecommendation.matchPercentage,
+        note:
+          secondaryRecommendation.size > primaryRecommendation.size
+            ? 'Choose for a more oversized / baggier fit'
+            : 'Choose for a snugger / closer fit',
+      },
+      sizeBreakdown: scoredSizes,
+      productAvailability,
+    };
+  }
+
+  /**
    * Admin: Get single product by ID with full details.
    */
   async findOne(id: string) {
@@ -1206,6 +1440,41 @@ export class ProductsService {
         hasPrevPage: false,
       },
     };
+  }
+
+  private estimateChestInches(
+    heightCm: number,
+    weightKg: number,
+    gender: string,
+  ): number {
+    const heightInches = heightCm / 2.54;
+    if (gender === 'WOMEN') {
+      return 18 + heightInches * 0.15 + weightKg * 0.22;
+    }
+    // Men & Unisex calculation
+    return 19 + heightInches * 0.16 + weightKg * 0.24;
+  }
+
+  private estimateWaistInches(
+    heightCm: number,
+    weightKg: number,
+    gender: string,
+  ): number {
+    const heightInches = heightCm / 2.54;
+    if (gender === 'WOMEN') {
+      return 14 + heightInches * 0.12 + weightKg * 0.21;
+    }
+    // Men & Unisex calculation
+    return 15 + heightInches * 0.13 + weightKg * 0.23;
+  }
+
+  private calcDimensionScore(
+    actual: number,
+    ideal: number,
+    tolerance: number,
+  ): number {
+    const diff = Math.abs(actual - ideal);
+    return Math.max(0, 100 - (diff / tolerance) * 50);
   }
 
   private slugify(text: string): string {
