@@ -405,9 +405,19 @@ export class ProductsService {
   }
 
   /**
-   * Public: Get Product by SEO Slug with images, variants, breadcrumb, and related items.
+   * Public: Product Detail Page (PDP) & Cross-Sell Aggregator.
+   * Returns complete product profile with:
+   * - Gallery images and clothing variants
+   * - Color swatches and available size breakdown with stock flags
+   * - Category breadcrumb trail (Hierarchical ancestor path)
+   * - Rating summary and rating star breakdown (5★, 4★, 3★, 2★, 1★)
+   * - Active Flash Sale deal status (if live)
+   * - "Related Products" recommendation carousel
+   * - "Complete The Look" cross-sell recommendation styling set
    */
   async findBySlug(slug: string) {
+    const now = new Date();
+
     const product = await this.prisma.product.findUnique({
       where: { slug },
       include: {
@@ -421,6 +431,13 @@ export class ProductsService {
                 id: true,
                 name: true,
                 slug: true,
+                parent: {
+                  select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                  },
+                },
               },
             },
           },
@@ -432,7 +449,7 @@ export class ProductsService {
           orderBy: [{ color: 'asc' }, { size: 'asc' }],
         },
         reviews: {
-          take: 5,
+          take: 6,
           orderBy: { createdAt: 'desc' },
           include: {
             user: {
@@ -447,6 +464,7 @@ export class ProductsService {
         _count: {
           select: {
             reviews: true,
+            wishlists: true,
           },
         },
       },
@@ -456,43 +474,300 @@ export class ProductsService {
       throw new NotFoundException(`Product "${slug}" not found or unavailable`);
     }
 
-    // Calculate aggregate review rating
-    const avgRating = await this.prisma.review.aggregate({
-      where: { productId: product.id },
-      _avg: { rating: true },
+    // 1. Build Category Breadcrumb Path (Root -> Sub -> Leaf)
+    type CategoryNode = {
+      id: string;
+      name: string;
+      slug: string;
+      parent?: CategoryNode | null;
+    };
+
+    const categoryPath: Array<{ id: string; name: string; slug: string }> = [];
+    let currCat: CategoryNode | null | undefined = product.category;
+    while (currCat) {
+      categoryPath.unshift({
+        id: currCat.id,
+        name: currCat.name,
+        slug: currCat.slug,
+      });
+      currCat = currCat.parent;
+    }
+
+    // 2. Aggregate Rating Summary & Star Breakdown
+    const [avgRatingRes, ratingCounts] = await Promise.all([
+      this.prisma.review.aggregate({
+        where: { productId: product.id },
+        _avg: { rating: true },
+        _count: { rating: true },
+      }),
+      this.prisma.review.groupBy({
+        by: ['rating'],
+        where: { productId: product.id },
+        _count: { rating: true },
+      }),
+    ]);
+
+    const ratingBreakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    ratingCounts.forEach((r) => {
+      if (r.rating >= 1 && r.rating <= 5) {
+        ratingBreakdown[r.rating as 1 | 2 | 3 | 4 | 5] = r._count.rating;
+      }
     });
 
-    // Fetch related products in the same category
-    const relatedProducts = await this.prisma.product.findMany({
-      where: {
-        categoryId: product.categoryId,
-        id: { not: product.id },
-        isPublished: true,
-      },
-      take: 4,
-      orderBy: { isFeatured: 'desc' },
-      include: {
-        images: {
-          where: { isPrimary: true },
-          take: 1,
-        },
-        category: {
-          select: { id: true, name: true, slug: true },
-        },
-      },
-    });
+    const averageRating = avgRatingRes._avg.rating
+      ? Number(avgRatingRes._avg.rating.toFixed(1))
+      : 0;
+
+    // 3. Group Variants by Color for Swatch Navigation
+    const colorGroupMap = new Map<
+      string,
+      {
+        color: string;
+        colorCode: string;
+        imageUrl?: string | null;
+        totalStock: number;
+        sizes: Array<{
+          variantId: string;
+          sku: string;
+          size: string;
+          stock: number;
+          extraPrice: number;
+          inStock: boolean;
+        }>;
+      }
+    >();
+
+    for (const v of product.variants) {
+      const key = v.color.trim();
+      if (!colorGroupMap.has(key)) {
+        colorGroupMap.set(key, {
+          color: v.color,
+          colorCode: v.colorCode,
+          imageUrl: v.imageUrl,
+          totalStock: 0,
+          sizes: [],
+        });
+      }
+
+      const group = colorGroupMap.get(key)!;
+      group.sizes.push({
+        variantId: v.id,
+        sku: v.sku,
+        size: v.size,
+        stock: v.stock,
+        extraPrice: Number(v.extraPrice),
+        inStock: v.stock > 0,
+      });
+      group.totalStock += v.stock;
+    }
+    const colorSwatches = Array.from(colorGroupMap.values());
 
     const totalStock = product.variants.reduce((acc, v) => acc + v.stock, 0);
 
+    // 4. Check for Live Flash Sale Deal Campaign
+    const liveFlashSaleItem = await this.prisma.flashSaleItem.findFirst({
+      where: {
+        productId: product.id,
+        flashSale: {
+          isActive: true,
+          startTime: { lte: now },
+          endTime: { gte: now },
+        },
+      },
+      include: {
+        flashSale: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            endTime: true,
+          },
+        },
+      },
+    });
+
+    const flashSaleDeal = liveFlashSaleItem
+      ? {
+          flashSaleId: liveFlashSaleItem.flashSale.id,
+          campaignTitle: liveFlashSaleItem.flashSale.title,
+          campaignSlug: liveFlashSaleItem.flashSale.slug,
+          discountPrice: liveFlashSaleItem.discountPrice,
+          discountPercent: liveFlashSaleItem.discountPercent,
+          totalSaleStock: liveFlashSaleItem.quantityLimit,
+          claimedStock: liveFlashSaleItem.soldCount,
+          claimPercentage: Math.min(
+            100,
+            Math.round(
+              (liveFlashSaleItem.soldCount / liveFlashSaleItem.quantityLimit) *
+                100,
+            ),
+          ),
+          endsAt: liveFlashSaleItem.flashSale.endTime,
+        }
+      : null;
+
+    // 5. Cross-Sell: "Related Products" (Same category or matching tags)
+    const orConditions: Prisma.ProductWhereInput[] = [
+      { categoryId: product.categoryId },
+      { tags: { hasSome: product.tags } },
+    ];
+    if (product.gender) {
+      orConditions.push({
+        gender: { equals: product.gender, mode: 'insensitive' },
+      });
+    }
+
+    const relatedRaw = await this.prisma.product.findMany({
+      where: {
+        id: { not: product.id },
+        isPublished: true,
+        OR: orConditions,
+      },
+      take: 6,
+      orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        basePrice: true,
+        discountPrice: true,
+        category: {
+          select: { id: true, name: true, slug: true },
+        },
+        images: {
+          select: { url: true, altText: true, isPrimary: true },
+          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+          take: 2,
+        },
+        variants: {
+          select: {
+            id: true,
+            size: true,
+            color: true,
+            colorCode: true,
+            stock: true,
+          },
+        },
+      },
+    });
+    const relatedProducts = relatedRaw.map((p) => this.formatProductCard(p));
+
+    // 6. Cross-Sell: "Complete The Look" Recommendation Set
+    const completeTheLook = await this.getCompleteTheLook(product);
+
     return {
-      ...product,
-      averageRating: avgRating._avg.rating
-        ? Number(avgRating._avg.rating.toFixed(1))
-        : 0,
-      totalReviews: product._count.reviews,
-      totalStock,
-      inStock: totalStock > 0,
-      relatedProducts,
+      id: product.id,
+      title: product.title,
+      slug: product.slug,
+      description: product.description,
+      details: product.details,
+      fabricSpecs: product.fabricSpecs,
+      washCare: product.washCare,
+      tags: product.tags,
+      basePrice: product.basePrice,
+      discountPrice: product.discountPrice,
+      gender: product.gender,
+      season: product.season,
+      isFeatured: product.isFeatured,
+      isPublished: product.isPublished,
+      category: product.category,
+      categoryPath,
+      images: product.images,
+      primaryImage:
+        product.images.find((img) => img.isPrimary) ||
+        product.images[0] ||
+        null,
+      inventory: {
+        totalStock,
+        inStock: totalStock > 0,
+        isLowStock: totalStock > 0 && totalStock <= 10,
+      },
+      colorSwatches,
+      variants: product.variants,
+      ratings: {
+        averageRating,
+        totalReviews: product._count.reviews,
+        breakdown: ratingBreakdown,
+      },
+      reviews: product.reviews.map((r) => ({
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment,
+        isVerifiedPurchase: r.isVerifiedPurchase,
+        user: r.user,
+        createdAt: r.createdAt,
+      })),
+      flashSaleDeal,
+      crossSells: {
+        relatedProducts,
+        completeTheLook,
+      },
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+    };
+  }
+
+  /**
+   * Public: Dedicated Cross-Sell Recommendation Query.
+   */
+  async getCrossSellsBySlug(slug: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        categoryId: true,
+        tags: true,
+        gender: true,
+        season: true,
+        isPublished: true,
+      },
+    });
+
+    if (!product || !product.isPublished) {
+      throw new NotFoundException(`Product "${slug}" not found`);
+    }
+
+    const [relatedRaw, completeTheLook] = await Promise.all([
+      this.prisma.product.findMany({
+        where: {
+          id: { not: product.id },
+          isPublished: true,
+          OR: [
+            { categoryId: product.categoryId },
+            { tags: { hasSome: product.tags } },
+          ],
+        },
+        take: 6,
+        orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          basePrice: true,
+          discountPrice: true,
+          category: { select: { id: true, name: true, slug: true } },
+          images: {
+            select: { url: true, altText: true, isPrimary: true },
+            orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+            take: 2,
+          },
+          variants: {
+            select: {
+              id: true,
+              size: true,
+              color: true,
+              colorCode: true,
+              stock: true,
+            },
+          },
+        },
+      }),
+      this.getCompleteTheLook(product),
+    ]);
+
+    return {
+      relatedProducts: relatedRaw.map((p) => this.formatProductCard(p)),
+      completeTheLook,
     };
   }
 
@@ -688,6 +963,197 @@ export class ProductsService {
   }
 
   // ── Helper Methods ──────────────────────────────────────────
+
+  /**
+   * Complete The Look Cross-Sell Aggregator.
+   * First queries Lookbooks containing this product to get styled outfit pairs.
+   * If not enough items, supplements with complementary category products.
+   */
+  private async getCompleteTheLook(product: {
+    id: string;
+    categoryId: string;
+    gender?: string | null;
+    season?: string | null;
+  }) {
+    const completeTheLookItems: Array<
+      ReturnType<typeof this.formatProductCard>
+    > = [];
+
+    // 1. Look up Lookbook hotspots containing this product
+    const hotspotLookbooks = await this.prisma.lookbookHotspot.findMany({
+      where: {
+        productId: product.id,
+        lookbook: { isActive: true },
+      },
+      include: {
+        lookbook: {
+          include: {
+            hotspots: {
+              where: {
+                productId: { not: product.id },
+              },
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    basePrice: true,
+                    discountPrice: true,
+                    isPublished: true,
+                    category: {
+                      select: { id: true, name: true, slug: true },
+                    },
+                    images: {
+                      select: { url: true, altText: true, isPrimary: true },
+                      orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+                      take: 2,
+                    },
+                    variants: {
+                      select: {
+                        id: true,
+                        size: true,
+                        color: true,
+                        colorCode: true,
+                        stock: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      take: 2,
+    });
+
+    let stylingLookbookContext: {
+      id: string;
+      title: string;
+      slug: string;
+      coverImageUrl: string;
+    } | null = null;
+
+    if (
+      hotspotLookbooks.length > 0 &&
+      hotspotLookbooks[0].lookbook.hotspots.length > 0
+    ) {
+      const lb = hotspotLookbooks[0].lookbook;
+      stylingLookbookContext = {
+        id: lb.id,
+        title: lb.title,
+        slug: lb.slug,
+        coverImageUrl: lb.coverImageUrl,
+      };
+
+      for (const spot of lb.hotspots) {
+        if (spot.product && spot.product.isPublished) {
+          completeTheLookItems.push(this.formatProductCard(spot.product));
+        }
+      }
+    }
+
+    // 2. If fewer than 3 items found from lookbook, supplement with complementary categories (e.g. bottoms, jackets, accessories)
+    if (completeTheLookItems.length < 3) {
+      const existingIds = [
+        product.id,
+        ...completeTheLookItems.map((p) => p.id),
+      ];
+
+      const compWhere: Prisma.ProductWhereInput = {
+        id: { notIn: existingIds },
+        categoryId: { not: product.categoryId },
+        isPublished: true,
+      };
+
+      if (product.gender) {
+        compWhere.gender = { equals: product.gender, mode: 'insensitive' };
+      }
+
+      const complementary = await this.prisma.product.findMany({
+        where: compWhere,
+        take: 4 - completeTheLookItems.length,
+        orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          basePrice: true,
+          discountPrice: true,
+          category: {
+            select: { id: true, name: true, slug: true },
+          },
+          images: {
+            select: { url: true, altText: true, isPrimary: true },
+            orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+            take: 2,
+          },
+          variants: {
+            select: {
+              id: true,
+              size: true,
+              color: true,
+              colorCode: true,
+              stock: true,
+            },
+          },
+        },
+      });
+
+      for (const comp of complementary) {
+        completeTheLookItems.push(this.formatProductCard(comp));
+      }
+    }
+
+    return {
+      stylingLookbook: stylingLookbookContext,
+      items: completeTheLookItems,
+    };
+  }
+
+  private formatProductCard(p: {
+    id: string;
+    title: string;
+    slug: string;
+    basePrice: Prisma.Decimal;
+    discountPrice: Prisma.Decimal | null;
+    category: { id: string; name: string; slug: string };
+    images: Array<{ url: string; altText?: string | null; isPrimary: boolean }>;
+    variants: Array<{
+      id: string;
+      size: string;
+      color: string;
+      colorCode: string;
+      stock: number;
+    }>;
+  }) {
+    const totalStock = p.variants.reduce((acc, v) => acc + v.stock, 0);
+    const availableSizes = Array.from(new Set(p.variants.map((v) => v.size)));
+    const availableColors = Array.from(
+      new Set(
+        p.variants.map((v) =>
+          JSON.stringify({ color: v.color, colorCode: v.colorCode }),
+        ),
+      ),
+    ).map((str) => JSON.parse(str) as { color: string; colorCode: string });
+
+    return {
+      id: p.id,
+      title: p.title,
+      slug: p.slug,
+      basePrice: p.basePrice,
+      discountPrice: p.discountPrice,
+      category: p.category,
+      primaryImage:
+        p.images.find((img) => img.isPrimary) || p.images[0] || null,
+      images: p.images,
+      availableSizes,
+      availableColors,
+      totalStock,
+      inStock: totalStock > 0,
+    };
+  }
 
   private async getCategoryAndChildrenIdsBySlug(
     slug: string,

@@ -42,7 +42,8 @@ export class ProductsController {
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Paginated list of products with available variants',
+    description:
+      'Paginated list of products with available variants and filter facets',
   })
   findAll(@Query() query: ProductQueryDto) {
     return this.productsService.findAll(query);
@@ -53,14 +54,30 @@ export class ProductsController {
   @ResponseMessage('Product details retrieved successfully')
   @ApiOperation({
     summary:
-      'Get single product by SEO slug with gallery, variants, review rating, and related items (Public)',
+      'Product Detail Page (PDP): Get complete product by SEO slug with gallery, variants, review ratings, Flash Deal tag, and Cross-Sell recommendations (Public)',
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Product details returned',
+    description:
+      'Complete PDP payload with breadcrumb path, inventory status, color swatches, Related Products, and Complete The Look outfit recommendations',
   })
   findBySlug(@Param('slug') slug: string) {
     return this.productsService.findBySlug(slug);
+  }
+
+  @Public()
+  @Get(':slug/cross-sells')
+  @ResponseMessage('Cross-sell recommendations fetched successfully')
+  @ApiOperation({
+    summary:
+      'Get "Related Products" and "Complete The Look" style cross-sell recommendations for a product (Public)',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Cross-sell and lookbook outfit recommendations returned',
+  })
+  getCrossSellsBySlug(@Param('slug') slug: string) {
+    return this.productsService.getCrossSellsBySlug(slug);
   }
 
   // ── Admin Catalog Operations (RBAC Protected) ────────────────
