@@ -67,6 +67,22 @@ export class ProductsController {
   }
 
   @Public()
+  @Get(':slug/fabric-ar-preview')
+  @ResponseMessage('Fabric weave & AR preview details retrieved')
+  @ApiOperation({
+    summary:
+      'Fabric 360° / AR Texture Preview: Get high-resolution fabric weave macro zoom images, 3-5 sec looping hover video, 360 turntable frames, and 3D AR WebGL model metadata (Public)',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description:
+      'Fabric weave specs, macro zoom texture tiles, 360 frame URLs, looping hover video, and AR metadata',
+  })
+  getFabricAndARPreview(@Param('slug') slug: string) {
+    return this.productsService.getFabricAndARPreview(slug);
+  }
+
+  @Public()
   @Get(':slug/cross-sells')
   @ResponseMessage('Cross-sell recommendations fetched successfully')
   @ApiOperation({

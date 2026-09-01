@@ -136,6 +136,67 @@ export class CreateProductDto {
   @IsString()
   season?: string;
 
+  @ApiPropertyOptional({
+    example: 'https://assets.zevon.com/videos/oversized-tee-hover.mp4',
+    description: 'Short 3-5 sec looping video on product card hover',
+  })
+  @IsOptional()
+  @IsString()
+  hoverVideoUrl?: string;
+
+  @ApiPropertyOptional({
+    example: '100% Slub Linen Twill Weave, 260 GSM',
+    description: 'Detailed weave texture name and fabric construction',
+  })
+  @IsOptional()
+  @IsString()
+  fabricWeave?: string;
+
+  @ApiPropertyOptional({
+    example: [
+      'https://assets.zevon.com/textures/linen-macro-zoom-1.jpg',
+      'https://assets.zevon.com/textures/linen-macro-zoom-2.jpg',
+    ],
+    type: [String],
+    description:
+      'High-resolution macro zoom texture images showing fabric weave grain',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  fabricZoomImages?: string[];
+
+  @ApiPropertyOptional({
+    example: [
+      'https://assets.zevon.com/360/tee-frame-01.jpg',
+      'https://assets.zevon.com/360/tee-frame-02.jpg',
+      'https://assets.zevon.com/360/tee-frame-24.jpg',
+    ],
+    type: [String],
+    description: 'Sequential 360-degree turntable rotation frame URLs',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  view360Urls?: string[];
+
+  @ApiPropertyOptional({
+    example: 'https://assets.zevon.com/models/oversized-tee.glb',
+    description: '3D model file URL (GLB / USDZ) for WebGL and AR Quick Look',
+  })
+  @IsOptional()
+  @IsString()
+  model3dUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 'BODY',
+    default: 'FLOOR',
+    description: 'AR Placement anchor: FLOOR, BODY, TABLE, WALL',
+  })
+  @IsOptional()
+  @IsString()
+  arPlacement?: string;
+
   @ApiProperty({
     type: [CreateProductVariantDto],
     description:

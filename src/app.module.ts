@@ -36,6 +36,8 @@ import { LoyaltyModule } from './modules/loyalty/loyalty.module.js';
 import { ReferralsModule } from './modules/referrals/referrals.module.js';
 import { AbandonedCartModule } from './modules/abandoned-cart/abandoned-cart.module.js';
 import { GiftCardsModule } from './modules/gift-cards/gift-cards.module.js';
+import { OutfitsModule } from './modules/outfits/outfits.module.js';
+import { SearchModule } from './modules/search/search.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -78,6 +80,8 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     ReferralsModule,
     AbandonedCartModule,
     GiftCardsModule,
+    OutfitsModule,
+    SearchModule,
   ],
   providers: [
     // 1. Global JWT guard — all routes are protected unless decorated with @Public()

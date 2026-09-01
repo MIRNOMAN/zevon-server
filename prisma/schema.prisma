@@ -123,6 +123,14 @@ enum ReferralStatus {
   REWARDED
 }
 
+enum OutfitSlot {
+  TOP
+  BOTTOM
+  FOOTWEAR
+  OUTERWEAR
+  ACCESSORY
+}
+
 // ──────────────────────────────────────────────────────────────
 // 1. User & Authentication
 // ──────────────────────────────────────────────────────────────
@@ -158,6 +166,7 @@ model User {
   giftCardRedemptions  GiftCardRedemption[]
   referralRecords      Referral[]           @relation("Referrer")
   refereeRecord        Referral?            @relation("Referee")
+  outfits              Outfit[]
 
   @@index([role])
   @@index([email])
@@ -233,19 +242,26 @@ model Product {
   category       Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   isFeatured     Boolean           @default(false) @map("is_featured")
   isPublished    Boolean           @default(true) @map("is_published")
-  gender         String?
-  season         String?
-  createdAt      DateTime          @default(now()) @map("created_at")
-  updatedAt      DateTime          @updatedAt @map("updated_at")
+  gender            String?
+  season            String?
+  hoverVideoUrl     String?           @map("hover_video_url")
+  fabricWeave       String?           @map("fabric_weave")
+  fabricZoomImages  String[]          @default([]) @map("fabric_zoom_images")
+  view360Urls       String[]          @default([]) @map("view_360_urls")
+  model3dUrl        String?           @map("model_3d_url")
+  arPlacement       String?           @default("FLOOR") @map("ar_placement")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
 
-  variants       ProductVariant[]
-  images         ProductImage[]
-  reviews        Review[]
-  wishlists      Wishlist[]
-  orderItems     OrderItem[]
-  flashSaleItems FlashSaleItem[]
-  hotspots       LookbookHotspot[]
-  productViews   ProductView[]
+  variants          ProductVariant[]
+  images            ProductImage[]
+  reviews           Review[]
+  wishlists         Wishlist[]
+  orderItems        OrderItem[]
+  flashSaleItems    FlashSaleItem[]
+  hotspots          LookbookHotspot[]
+  productViews      ProductView[]
+  outfitItems       OutfitItem[]
 
   @@index([slug])
   @@index([categoryId])
@@ -852,5 +868,54 @@ model GiftCardRedemption {
   @@index([giftCardId])
   @@index([userId])
   @@map("gift_card_redemptions")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 25. Interactive Outfit Builder (Mix & Match Canvas)
+// ──────────────────────────────────────────────────────────────
+
+model Outfit {
+  id                    String       @id @default(cuid())
+  title                 String
+  slug                  String       @unique
+  description           String?      @db.Text
+  coverImageUrl         String?      @map("cover_image_url")
+  occasion              String?      // e.g., Casual, Streetwear, Formal, Party, Summer
+  gender                String?      // MEN, WOMEN, UNISEX
+  tags                  String[]     @default([])
+  bundleDiscountPercent Int          @default(10) @map("bundle_discount_percent") // e.g. 10% bundle discount
+  isCurated             Boolean      @default(true) @map("is_curated")
+  isActive              Boolean      @default(true) @map("is_active")
+  viewsCount            Int          @default(0) @map("views_count")
+  userId                String?      @map("user_id")
+  user                  User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items                 OutfitItem[]
+  createdAt             DateTime     @default(now()) @map("created_at")
+  updatedAt             DateTime     @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([isCurated, isActive])
+  @@index([userId])
+  @@index([occasion])
+  @@map("outfits")
+}
+
+model OutfitItem {
+  id               String     @id @default(cuid())
+  outfitId         String     @map("outfit_id")
+  outfit           Outfit     @relation(fields: [outfitId], references: [id], onDelete: Cascade)
+  productId        String     @map("product_id")
+  product          Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  defaultVariantId String?    @map("default_variant_id")
+  slot             OutfitSlot @default(TOP)
+  positionX        Float      @default(50.0) @map("position_x") // Canvas X % (0-100)
+  positionY        Float      @default(50.0) @map("position_y") // Canvas Y % (0-100)
+  zIndex           Int        @default(1) @map("z_index")
+  scale            Float      @default(1.0)
+  createdAt        DateTime   @default(now()) @map("created_at")
+
+  @@index([outfitId])
+  @@index([productId])
+  @@map("outfit_items")
 }
 

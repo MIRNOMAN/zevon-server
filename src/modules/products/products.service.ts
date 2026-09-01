@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Injectable,
   NotFoundException,
@@ -1466,6 +1467,98 @@ export class ProductsService {
     }
     // Men & Unisex calculation
     return 15 + heightInches * 0.13 + weightKg * 0.23;
+  }
+
+  /**
+   * Public: Get Fabric 360° & AR Texture details with macro zoom tiles, 360 turntable frames, hover video, and 3D AR model metadata.
+   */
+  async getFabricAndARPreview(slugOrId: string) {
+    const product = await this.prisma.product.findFirst({
+      where: {
+        OR: [{ id: slugOrId }, { slug: slugOrId }],
+        isPublished: true,
+      },
+      include: {
+        images: {
+          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+        },
+        variants: {
+          select: {
+            id: true,
+            color: true,
+            colorCode: true,
+            size: true,
+            stock: true,
+            imageUrl: true,
+          },
+        },
+        category: {
+          select: { id: true, name: true, slug: true },
+        },
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException(
+        `Product "${slugOrId}" not found or unpublished`,
+      );
+    }
+
+    const availableColors = Array.from(
+      new Map(
+        product.variants.map((v) => [
+          v.color.toLowerCase(),
+          {
+            color: v.color,
+            colorCode: v.colorCode,
+            imageUrl: v.imageUrl,
+            hasStock: v.stock > 0,
+          },
+        ]),
+      ).values(),
+    );
+
+    return {
+      productId: product.id,
+      title: product.title,
+      slug: product.slug,
+      category: product.category,
+      basePrice: Number(product.basePrice),
+      discountPrice: product.discountPrice
+        ? Number(product.discountPrice)
+        : null,
+      primaryImage: product.images[0]?.url ?? null,
+      // 1. Fabric & Weave Macro Zoom
+      fabric: {
+        weave: product.fabricWeave || 'High-Density Premium Weave',
+        specs: product.fabricSpecs,
+        washCare: product.washCare,
+        zoomImages:
+          product.fabricZoomImages.length > 0
+            ? product.fabricZoomImages
+            : product.images.slice(0, 3).map((img) => img.url),
+        textureZoomMagnification: '4x',
+      },
+      // 2. 3-5s Looping Hover Video
+      media: {
+        hoverVideoUrl: product.hoverVideoUrl || null,
+        galleryImages: product.images.map((img) => img.url),
+      },
+      // 3. 360 Turntable Rotation
+      view360: {
+        isSupported: product.view360Urls.length > 0,
+        frameCount: product.view360Urls.length,
+        frameUrls: product.view360Urls,
+      },
+      // 4. 3D WebGL & AR Quick Look Metadata
+      ar: {
+        isSupported: Boolean(product.model3dUrl),
+        model3dUrl: product.model3dUrl || null,
+        arPlacement: product.arPlacement || 'FLOOR',
+        quickLookSupported: Boolean(product.model3dUrl),
+      },
+      colorSwatches: availableColors,
+    };
   }
 
   private calcDimensionScore(
