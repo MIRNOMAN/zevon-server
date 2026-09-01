@@ -23,6 +23,7 @@ import {
   UpdatePaymentStatusDto,
   OrderQueryDto,
   TrackOrderDto,
+  AssignCourierDto,
 } from './dto/index.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
@@ -165,6 +166,31 @@ export class OrdersController {
     @Body() updateOrderStatusDto: UpdateOrderStatusDto,
   ) {
     return this.ordersService.updateStatus(id, updateOrderStatusDto);
+  }
+
+  @Patch(':id/assign-courier')
+  @Roles('ADMIN', 'MANAGER')
+  @ApiBearerAuth('JWT-auth')
+  @ResponseMessage('Courier details assigned and order status updated to SHIPPED')
+  @ApiOperation({
+    summary: 'Assign courier partner and tracking code, setting order to SHIPPED (Admin/Manager)',
+  })
+  assignCourier(
+    @Param('id') id: string,
+    @Body() assignCourierDto: AssignCourierDto,
+  ) {
+    return this.ordersService.assignCourier(id, assignCourierDto);
+  }
+
+  @Get(':id/invoice')
+  @Roles('ADMIN', 'MANAGER')
+  @ApiBearerAuth('JWT-auth')
+  @ResponseMessage('Order printable invoice generated successfully')
+  @ApiOperation({
+    summary: 'Generate structured printable invoice JSON for an order (Admin/Manager)',
+  })
+  generateInvoice(@Param('id') id: string) {
+    return this.ordersService.generateInvoice(id);
   }
 
   @Patch(':id/payment-status')

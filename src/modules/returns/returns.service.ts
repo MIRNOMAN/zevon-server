@@ -530,4 +530,55 @@ export class ReturnsService {
       },
     });
   }
+
+  /**
+   * Admin: Approve return request.
+   */
+  async approveReturn(id: string, adminNotes?: string, trackingNumber?: string) {
+    return this.updateStatus(id, {
+      status: ReturnStatus.APPROVED,
+      adminNotes: adminNotes || 'Return approved. Awaiting item arrival at warehouse.',
+      trackingNumber,
+    });
+  }
+
+  /**
+   * Admin: Reject return request with mandatory reason.
+   */
+  async rejectReturn(id: string, rejectionReason: string) {
+    if (!rejectionReason || !rejectionReason.trim()) {
+      throw new BadRequestException('Rejection reason (adminNotes) is required to decline a return request');
+    }
+    return this.updateStatus(id, {
+      status: ReturnStatus.REJECTED,
+      adminNotes: rejectionReason.trim(),
+    });
+  }
+
+  /**
+   * Admin: Receive returned item at warehouse and automatically restock inventory.
+   */
+  async receiveReturn(id: string, adminNotes?: string) {
+    return this.updateStatus(id, {
+      status: ReturnStatus.RECEIVED,
+      adminNotes: adminNotes || 'Item received at warehouse and quality inspection completed.',
+    });
+  }
+
+  /**
+   * Admin: Process refund or finalize exchange.
+   */
+  async refundReturn(id: string, refundAmount?: number, adminNotes?: string) {
+    const returnReq = await this.findOne(id);
+    const amount =
+      refundAmount !== undefined
+        ? refundAmount
+        : Number(returnReq.refundAmount || returnReq.orderItem.totalPrice);
+
+    return this.updateStatus(id, {
+      status: ReturnStatus.REFUNDED,
+      refundAmount: amount,
+      adminNotes: adminNotes || 'Refund processed to customer original payment method.',
+    });
+  }
 }

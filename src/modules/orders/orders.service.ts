@@ -19,6 +19,7 @@ import {
   OrderQueryDto,
   AddressSnapshotDto,
   TrackOrderDto,
+  AssignCourierDto,
 } from './dto/index.js';
 
 @Injectable()
@@ -847,6 +848,125 @@ export class OrdersService {
         paymentStatus: updateDto.paymentStatus,
       },
     });
+  }
+
+  /**
+   * Admin: Assign courier partner and waybill tracking number to an order.
+   * Automatically transitions status to SHIPPED if not already DELIVERED.
+   */
+  async assignCourier(id: string, assignCourierDto: AssignCourierDto) {
+    const order = await this.findOne(id);
+    const { courierName, trackingNumber, notes } = assignCourierDto;
+
+    const newStatus =
+      order.status === OrderStatus.DELIVERED || order.status === OrderStatus.RETURNED
+        ? order.status
+        : OrderStatus.SHIPPED;
+
+    return this.prisma.order.update({
+      where: { id },
+      data: {
+        courierName: courierName.trim(),
+        trackingNumber: trackingNumber.trim().toUpperCase(),
+        status: newStatus,
+        ...(notes ? { notes } : {}),
+      },
+      include: {
+        items: true,
+        user: { select: { id: true, name: true, email: true, phone: true } },
+        shippingZone: true,
+      },
+    });
+  }
+
+  /**
+   * Admin / Customer: Generate structured printable invoice document JSON.
+   */
+  async generateInvoice(id: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        user: { select: { id: true, name: true, email: true, phone: true } },
+        items: {
+          include: {
+            product: { select: { id: true, title: true, slug: true } },
+            variant: { select: { id: true, sku: true, size: true, color: true } },
+          },
+        },
+        shippingZone: true,
+        coupon: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID "${id}" was not found`);
+    }
+
+    const shippingAddr =
+      (order.shippingAddress as Record<string, unknown>) || {};
+    const billingAddr =
+      (order.billingAddress as Record<string, unknown>) || shippingAddr;
+
+    const invoiceNumber = `INV-${order.orderNumber.replace('ZV-', '')}`;
+    const invoiceDate = new Date().toISOString();
+
+    return {
+      invoiceNumber,
+      invoiceDate,
+      company: {
+        name: 'ZEVON Official Ltd.',
+        tagline: 'Modern Apparel & Lifestyle',
+        address: 'House 42, Road 11, Banani, Dhaka-1213, Bangladesh',
+        binNumber: 'BIN-009823412-2026',
+        supportEmail: 'support@zevon.com',
+        phone: '+880 9612-000000',
+        website: 'https://zevon.com',
+      },
+      order: {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        orderDate: order.createdAt,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        paymentMethod: order.paymentMethod,
+      },
+      customer: {
+        id: order.userId,
+        name: order.user?.name || (shippingAddr.fullName as string) || 'Valued Customer',
+        email: order.user?.email || (shippingAddr.email as string) || '',
+        phone: order.user?.phone || (shippingAddr.phone as string) || '',
+      },
+      shippingAddress: shippingAddr,
+      billingAddress: billingAddr,
+      logistics: {
+        courierName: order.courierName || order.shippingZone?.name || 'Standard Courier',
+        trackingNumber: order.trackingNumber || 'Pending Assignment',
+        estimatedDeliveryDays: order.shippingZone?.estimatedDeliveryDays || '1-3 Business Days',
+      },
+      lineItems: order.items.map((item, index) => ({
+        serial: index + 1,
+        productId: item.productId,
+        productTitle: item.productTitle,
+        sku: item.sku || item.variant?.sku || 'N/A',
+        color: item.color || item.variant?.color || 'Standard',
+        size: item.size || item.variant?.size || 'Standard',
+        unitPrice: Number(item.unitPrice),
+        quantity: item.quantity,
+        lineTotal: Number(item.totalPrice),
+      })),
+      financials: {
+        subtotal: Number(order.subtotal),
+        couponCode: order.coupon?.code || null,
+        discountAmount: Number(order.discountAmount),
+        shippingCost: Number(order.shippingCost),
+        totalAmount: Number(order.totalAmount),
+        currency: 'BDT (৳)',
+      },
+      terms: {
+        returnPolicy: 'Exchange or return permitted within 14 days of delivery with original tags intact.',
+        supportNotes: 'For queries regarding this invoice, please reach out to billing@zevon.com with your order number.',
+      },
+    };
   }
 
   /**

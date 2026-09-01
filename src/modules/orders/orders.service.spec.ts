@@ -377,6 +377,73 @@ describe('OrdersService', () => {
   });
 
   describe('Admin Operations', () => {
+    it('assignCourier should update courier name, tracking number, and set status to SHIPPED', async () => {
+      const mockOrder = {
+        id: 'order-1',
+        orderNumber: 'ZV-20260901-4892',
+        status: OrderStatus.PROCESSING,
+        shippingAddress: {},
+        items: [],
+      };
+
+      (prisma.order.findUnique as jest.Mock).mockResolvedValue(mockOrder);
+      (prisma.order.update as jest.Mock).mockResolvedValue({
+        ...mockOrder,
+        courierName: 'Pathao Courier',
+        trackingNumber: 'PTH-12345',
+        status: OrderStatus.SHIPPED,
+      });
+
+      const result = await service.assignCourier('order-1', {
+        courierName: 'Pathao Courier',
+        trackingNumber: 'PTH-12345',
+      });
+
+      expect(result.courierName).toBe('Pathao Courier');
+      expect(result.trackingNumber).toBe('PTH-12345');
+      expect(result.status).toBe(OrderStatus.SHIPPED);
+    });
+
+    it('generateInvoice should produce structured printable invoice JSON with company branding', async () => {
+      const mockOrder = {
+        id: 'order-1',
+        orderNumber: 'ZV-20260901-4892',
+        status: OrderStatus.DELIVERED,
+        paymentStatus: PaymentStatus.PAID,
+        paymentMethod: PaymentMethod.STRIPE,
+        subtotal: new Decimal(2000),
+        discountAmount: new Decimal(200),
+        shippingCost: new Decimal(60),
+        totalAmount: new Decimal(1860),
+        shippingAddress: { fullName: 'Mir Noman', city: 'Dhaka' },
+        user: { name: 'Mir Noman', email: 'noman@example.com', phone: '01712345678' },
+        items: [
+          {
+            id: 'item-1',
+            productId: 'prod-1',
+            productTitle: 'Shirt',
+            sku: 'SHIRT-M',
+            size: 'M',
+            color: 'Black',
+            unitPrice: new Decimal(2000),
+            quantity: 1,
+            totalPrice: new Decimal(2000),
+          },
+        ],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (prisma.order.findUnique as jest.Mock).mockResolvedValue(mockOrder);
+
+      const invoice = await service.generateInvoice('order-1');
+
+      expect(invoice.invoiceNumber).toBe('INV-20260901-4892');
+      expect(invoice.company.name).toBe('ZEVON Official Ltd.');
+      expect(invoice.financials.totalAmount).toBe(1860);
+      expect(invoice.lineItems).toHaveLength(1);
+    });
+
     it('getMetricsSummary should aggregate revenue and count orders by status', async () => {
       const metrics = await service.getMetricsSummary();
       expect(metrics.totalRevenue).toBe(5000);

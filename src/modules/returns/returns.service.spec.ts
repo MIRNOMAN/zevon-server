@@ -215,4 +215,53 @@ describe('ReturnsService', () => {
       ).rejects.toThrow(NotFoundException);
     });
   });
+
+  describe('Admin Return Workflows & Automated Restock', () => {
+    const mockReturnWithItem = {
+      id: 'ret-123',
+      returnReference: 'RET-20260901-4821',
+      status: ReturnStatus.REQUESTED,
+      orderItem: {
+        id: 'item-1',
+        variantId: 'var-1',
+        quantity: 2,
+        sku: 'ZEV-TEE-BLK-M',
+        unitPrice: new Decimal(1000),
+        totalPrice: new Decimal(2000),
+      },
+      order: { orderNumber: 'ZV-20260901-4892' },
+      user: { name: 'Mir Noman', email: 'noman@example.com' },
+    };
+
+    it('receiveReturn should update status to RECEIVED and automatically increment variant stock', async () => {
+      (prisma.returnRequest.findUnique as jest.Mock).mockResolvedValue(mockReturnWithItem);
+      (prisma.returnRequest.update as jest.Mock).mockResolvedValue({
+        ...mockReturnWithItem,
+        status: ReturnStatus.RECEIVED,
+      });
+
+      const result = await service.receiveReturn('ret-123', 'Inspection passed. Items in original condition.');
+
+      expect(result.status).toBe(ReturnStatus.RECEIVED);
+      expect(prisma.productVariant.update).toHaveBeenCalledWith({
+        where: { id: 'var-1' },
+        data: { stock: { increment: 2 } },
+      });
+    });
+
+    it('approveReturn should transition status to APPROVED', async () => {
+      (prisma.returnRequest.findUnique as jest.Mock).mockResolvedValue(mockReturnWithItem);
+      (prisma.returnRequest.update as jest.Mock).mockResolvedValue({
+        ...mockReturnWithItem,
+        status: ReturnStatus.APPROVED,
+      });
+
+      const result = await service.approveReturn('ret-123', 'Return accepted', 'TRACK-123');
+      expect(result.status).toBe(ReturnStatus.APPROVED);
+    });
+
+    it('rejectReturn should throw BadRequestException if rejection reason is omitted', async () => {
+      await expect(service.rejectReturn('ret-123', '')).rejects.toThrow(BadRequestException);
+    });
+  });
 });

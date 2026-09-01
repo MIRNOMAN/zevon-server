@@ -399,6 +399,8 @@ model Order {
   coupon          Coupon?        @relation(fields: [couponId], references: [id], onDelete: SetNull)
   shippingZoneId  String?        @map("shipping_zone_id")
   shippingZone    ShippingZone?  @relation(fields: [shippingZoneId], references: [id], onDelete: SetNull)
+  trackingNumber  String?        @map("tracking_number")
+  courierName     String?        @map("courier_name")
   shippingAddress Json           @map("shipping_address")
   billingAddress  Json?          @map("billing_address")
   notes           String?        @db.Text
@@ -409,6 +411,7 @@ model Order {
   returnRequests  ReturnRequest[]
 
   @@index([orderNumber])
+  @@index([trackingNumber])
   @@index([userId])
   @@index([status])
   @@map("orders")

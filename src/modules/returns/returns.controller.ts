@@ -138,4 +138,63 @@ export class ReturnsController {
   ) {
     return this.returnsService.updateStatus(id, updateReturnStatusDto);
   }
+
+  @Patch(':id/approve')
+  @Roles('ADMIN', 'MANAGER')
+  @ApiBearerAuth('JWT-auth')
+  @ResponseMessage('Return request approved successfully')
+  @ApiOperation({
+    summary: 'Approve return request and issue courier pickup / tracking info (Admin/Manager)',
+  })
+  approve(
+    @Param('id') id: string,
+    @Body('adminNotes') adminNotes?: string,
+    @Body('trackingNumber') trackingNumber?: string,
+  ) {
+    return this.returnsService.approveReturn(id, adminNotes, trackingNumber);
+  }
+
+  @Patch(':id/reject')
+  @Roles('ADMIN', 'MANAGER')
+  @ApiBearerAuth('JWT-auth')
+  @ResponseMessage('Return request rejected successfully')
+  @ApiOperation({
+    summary: 'Decline return request with mandatory rejection reason (Admin/Manager)',
+  })
+  reject(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+  ) {
+    return this.returnsService.rejectReturn(id, reason);
+  }
+
+  @Patch(':id/receive')
+  @Roles('ADMIN', 'MANAGER')
+  @ApiBearerAuth('JWT-auth')
+  @ResponseMessage('Item received at warehouse and inventory restocked successfully')
+  @ApiOperation({
+    summary:
+      'Mark returned item received at warehouse and automatically restock product variant inventory (Admin/Manager)',
+  })
+  receive(
+    @Param('id') id: string,
+    @Body('adminNotes') adminNotes?: string,
+  ) {
+    return this.returnsService.receiveReturn(id, adminNotes);
+  }
+
+  @Patch(':id/refund')
+  @Roles('ADMIN', 'MANAGER')
+  @ApiBearerAuth('JWT-auth')
+  @ResponseMessage('Return refund finalized successfully')
+  @ApiOperation({
+    summary: 'Finalize return refund amount or exchange completion (Admin/Manager)',
+  })
+  refund(
+    @Param('id') id: string,
+    @Body('refundAmount') refundAmount?: number,
+    @Body('adminNotes') adminNotes?: string,
+  ) {
+    return this.returnsService.refundReturn(id, refundAmount, adminNotes);
+  }
 }
