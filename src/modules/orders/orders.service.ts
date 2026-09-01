@@ -18,6 +18,7 @@ import {
   UpdatePaymentStatusDto,
   OrderQueryDto,
   AddressSnapshotDto,
+  TrackOrderDto,
 } from './dto/index.js';
 
 @Injectable()
@@ -333,6 +334,191 @@ export class OrdersService {
       billingAddress: createdOrder.billingAddress,
       items: createdOrder.items,
       createdAt: createdOrder.createdAt,
+    };
+  }
+
+  // ── Public Order Tracking (Stepper States) ──────────────────────────────
+
+  /**
+   * Public: Track order by Order Number and Email/Phone verification.
+   * Returns shipment stepper states (Pending -> Confirmed -> Processing -> Shipped -> Delivered).
+   */
+  async trackOrder(trackDto: TrackOrderDto) {
+    const { orderNumber, emailOrPhone } = trackDto;
+    const cleanOrderNumber = orderNumber.trim().toUpperCase();
+    const cleanInput = emailOrPhone.trim().toLowerCase();
+    const digitsOnlyInput = cleanInput.replace(/\D/g, '');
+
+    const order = await this.prisma.order.findUnique({
+      where: { orderNumber: cleanOrderNumber },
+      include: {
+        items: true,
+        shippingZone: true,
+        user: {
+          select: { name: true, email: true, phone: true },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(
+        `Order #${cleanOrderNumber} was not found. Please verify the order number.`,
+      );
+    }
+
+    const shippingAddr =
+      (order.shippingAddress as Record<string, unknown>) || {};
+    const orderEmail = (
+      order.user?.email ||
+      (shippingAddr.email as string) ||
+      ''
+    ).toLowerCase();
+    const orderPhone = (
+      order.user?.phone ||
+      (shippingAddr.phone as string) ||
+      ''
+    ).replace(/\D/g, '');
+
+    const isEmailMatch = orderEmail && orderEmail === cleanInput;
+    const isPhoneMatch =
+      Boolean(digitsOnlyInput) &&
+      Boolean(orderPhone) &&
+      (orderPhone.includes(digitsOnlyInput) ||
+        digitsOnlyInput.includes(orderPhone));
+
+    if (!isEmailMatch && !isPhoneMatch) {
+      throw new NotFoundException(
+        'The phone number or email address does not match this order record.',
+      );
+    }
+
+    // Determine Shipment Stepper States
+    const statusOrder: OrderStatus[] = [
+      OrderStatus.PENDING,
+      OrderStatus.CONFIRMED,
+      OrderStatus.PROCESSING,
+      OrderStatus.SHIPPED,
+      OrderStatus.DELIVERED,
+    ];
+
+    const currentStatus = order.status;
+    const isCancelled = currentStatus === OrderStatus.CANCELLED;
+    const isReturned = currentStatus === OrderStatus.RETURNED;
+    const currentIndex = statusOrder.indexOf(currentStatus);
+
+    const steps = [
+      {
+        key: 'PENDING',
+        title: 'Order Placed',
+        description: 'Order received and registered in system.',
+        completed: !isCancelled && (currentIndex >= 0 || isReturned),
+        current: currentStatus === OrderStatus.PENDING,
+        timestamp: order.createdAt,
+      },
+      {
+        key: 'CONFIRMED',
+        title: 'Order Confirmed',
+        description: 'Payment and order details verified.',
+        completed: !isCancelled && (currentIndex >= 1 || isReturned),
+        current: currentStatus === OrderStatus.CONFIRMED,
+        timestamp: currentIndex >= 1 ? order.updatedAt : null,
+      },
+      {
+        key: 'PROCESSING',
+        title: 'Packed & Quality Checked',
+        description: 'Items packaged and ready for courier pickup.',
+        completed: !isCancelled && (currentIndex >= 2 || isReturned),
+        current: currentStatus === OrderStatus.PROCESSING,
+        timestamp: currentIndex >= 2 ? order.updatedAt : null,
+      },
+      {
+        key: 'SHIPPED',
+        title: 'With Delivery Courier',
+        description: `In transit with ${order.shippingZone?.name || 'Courier Partner'}.`,
+        completed: !isCancelled && (currentIndex >= 3 || isReturned),
+        current: currentStatus === OrderStatus.SHIPPED,
+        timestamp: currentIndex >= 3 ? order.updatedAt : null,
+      },
+      {
+        key: 'DELIVERED',
+        title: 'Delivered',
+        description: 'Package successfully delivered to doorstep.',
+        completed: !isCancelled && (currentIndex >= 4 || isReturned),
+        current: currentStatus === OrderStatus.DELIVERED,
+        timestamp: currentIndex >= 4 ? order.updatedAt : null,
+      },
+    ];
+
+    // Return Policy Window Check (within 14 days from delivery)
+    const isDelivered = currentStatus === OrderStatus.DELIVERED;
+    const daysSinceDelivery = isDelivered
+      ? Math.floor(
+          (Date.now() - new Date(order.updatedAt).getTime()) /
+            (1000 * 60 * 60 * 24),
+        )
+      : null;
+    const isEligibleForReturn =
+      isDelivered && (daysSinceDelivery ?? 999) <= 14;
+
+    // Mask sensitive contact details for public response privacy
+    const maskedEmail = orderEmail
+      ? orderEmail.replace(
+          /(.{2})(.*)(?=@)/,
+          (_, a, b) => a + '*'.repeat(b.length),
+        )
+      : null;
+    const rawPhone =
+      (shippingAddr.phone as string) || order.user?.phone || '';
+    const maskedPhone = rawPhone
+      ? rawPhone.slice(0, 4) + '****' + rawPhone.slice(-3)
+      : null;
+
+    return {
+      orderNumber: order.orderNumber,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      paymentMethod: order.paymentMethod,
+      isCancelled,
+      isReturned,
+      currentStepIndex:
+        currentIndex >= 0 ? currentIndex : isCancelled ? -1 : 0,
+      steps,
+      estimatedDeliveryDays:
+        order.shippingZone?.estimatedDeliveryDays || '1-3 Business Days',
+      shippingZone: order.shippingZone?.name || 'Standard Logistics',
+      subtotal: Number(order.subtotal),
+      discountAmount: Number(order.discountAmount),
+      shippingCost: Number(order.shippingCost),
+      totalAmount: Number(order.totalAmount),
+      itemCount: order.items.length,
+      items: order.items.map((i) => ({
+        id: i.id,
+        productId: i.productId,
+        productTitle: i.productTitle,
+        sku: i.sku,
+        size: i.size,
+        color: i.color,
+        quantity: i.quantity,
+        totalPrice: Number(i.totalPrice),
+      })),
+      shippingAddress: {
+        fullName: shippingAddr.fullName,
+        maskedPhone,
+        maskedEmail,
+        city: shippingAddr.city,
+        state: shippingAddr.state,
+        postalCode: shippingAddr.postalCode,
+        country: shippingAddr.country,
+      },
+      returnEligibility: {
+        isEligible: isEligibleForReturn,
+        daysRemaining: isEligibleForReturn
+          ? Math.max(0, 14 - (daysSinceDelivery ?? 0))
+          : 0,
+        policyDays: 14,
+      },
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
     };
   }
 

@@ -26,6 +26,7 @@ import { ShippingModule } from './modules/shipping/shipping.module.js';
 import { OrdersModule } from './modules/orders/orders.module.js';
 import { MailModule } from './modules/mail/mail.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
+import { ReturnsModule } from './modules/returns/returns.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -58,6 +59,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     OrdersModule,
     MailModule,
     PaymentsModule,
+    ReturnsModule,
   ],
   providers: [
     // 1. Global JWT guard — all routes are protected unless decorated with @Public()

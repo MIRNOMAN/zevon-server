@@ -62,6 +62,15 @@ describe('OrdersController', () => {
     expect(controller).toBeDefined();
   });
 
+  it('POST /orders/track should delegate to service.trackOrder', async () => {
+    const dto = { orderNumber: 'ZV-20260901-1234', emailOrPhone: 'noman@example.com' };
+    (service as any).trackOrder = jest.fn().mockResolvedValue({ orderNumber: 'ZV-20260901-1234', steps: [] });
+
+    const result = await controller.trackOrder(dto);
+    expect(service.trackOrder).toHaveBeenCalledWith(dto);
+    expect(result.orderNumber).toBe('ZV-20260901-1234');
+  });
+
   it('POST /orders/checkout should delegate to service.checkout', async () => {
     const dto = {
       paymentMethod: PaymentMethod.COD,

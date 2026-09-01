@@ -22,15 +22,36 @@ import {
   UpdateOrderStatusDto,
   UpdatePaymentStatusDto,
   OrderQueryDto,
+  TrackOrderDto,
 } from './dto/index.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator.js';
+import { Public } from '../../common/decorators/public.decorator.js';
 
 @ApiTags('Orders & Atomic Checkout')
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
+
+  // ── Public Order Tracking ──────────────────────────────────────────────
+
+  @Post('track')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Order tracking details retrieved successfully')
+  @ApiOperation({
+    summary:
+      'Public Order Tracking: Lookup by orderNumber and email/phone, returning shipment stepper states and live status',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description:
+      'Returns shipment milestone stepper (Pending -> Confirmed -> Processing -> Shipped -> Delivered), courier info, and return eligibility',
+  })
+  trackOrder(@Body() trackOrderDto: TrackOrderDto) {
+    return this.ordersService.trackOrder(trackOrderDto);
+  }
 
   // ── Customer Checkout & Order Placement ────────────────────────────────
 

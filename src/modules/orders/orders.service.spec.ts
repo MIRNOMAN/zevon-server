@@ -322,6 +322,60 @@ describe('OrdersService', () => {
     });
   });
 
+  describe('trackOrder', () => {
+    it('should return shipment stepper milestones for valid order number and email', async () => {
+      const mockOrder = {
+        id: 'order-1',
+        orderNumber: 'ZV-20260901-4892',
+        status: OrderStatus.SHIPPED,
+        paymentStatus: PaymentStatus.PAID,
+        paymentMethod: PaymentMethod.STRIPE,
+        subtotal: new Decimal(2000),
+        discountAmount: new Decimal(0),
+        shippingCost: new Decimal(60),
+        totalAmount: new Decimal(2060),
+        shippingAddress: {
+          fullName: 'Mir Noman',
+          phone: '01712345678',
+          email: 'noman@example.com',
+          city: 'Dhaka',
+        },
+        user: { name: 'Mir Noman', email: 'noman@example.com', phone: '01712345678' },
+        items: [],
+        shippingZone: { name: 'Inside Dhaka City', estimatedDeliveryDays: '1-2 Days' },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (prisma.order.findUnique as jest.Mock).mockResolvedValue(mockOrder);
+
+      const result = await service.trackOrder({
+        orderNumber: 'ZV-20260901-4892',
+        emailOrPhone: 'noman@example.com',
+      });
+
+      expect(result.orderNumber).toBe('ZV-20260901-4892');
+      expect(result.status).toBe(OrderStatus.SHIPPED);
+      expect(result.currentStepIndex).toBe(3);
+      expect(result.steps).toHaveLength(5);
+      expect(result.steps[0].completed).toBe(true); // PENDING
+      expect(result.steps[1].completed).toBe(true); // CONFIRMED
+      expect(result.steps[2].completed).toBe(true); // PROCESSING
+      expect(result.steps[3].current).toBe(true); // SHIPPED
+    });
+
+    it('should throw NotFoundException if order number is invalid', async () => {
+      (prisma.order.findUnique as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.trackOrder({
+          orderNumber: 'INVALID-ORDER',
+          emailOrPhone: 'noman@example.com',
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('Admin Operations', () => {
     it('getMetricsSummary should aggregate revenue and count orders by status', async () => {
       const metrics = await service.getMetricsSummary();

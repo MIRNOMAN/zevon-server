@@ -63,6 +63,11 @@ enum ReturnStatus {
   REFUNDED
 }
 
+enum ReturnResolution {
+  REFUND
+  EXCHANGE
+}
+
 enum TicketStatus {
   OPEN
   IN_PROGRESS
@@ -439,21 +444,27 @@ model OrderItem {
 // ──────────────────────────────────────────────────────────────
 
 model ReturnRequest {
-  id           String       @id @default(cuid())
-  orderId      String       @map("order_id")
-  order        Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderItemId  String       @map("order_item_id")
-  orderItem    OrderItem    @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-  userId       String       @map("user_id")
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reason       String       @db.Text
-  status       ReturnStatus @default(REQUESTED)
-  adminNotes   String?      @map("admin_notes") @db.Text
-  refundAmount Decimal?     @map("refund_amount") @db.Decimal(10, 2)
-  proofImages  String[]     @map("proof_images")
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
+  id                String           @id @default(cuid())
+  returnReference   String           @unique @map("return_reference")
+  orderId           String           @map("order_id")
+  order             Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItemId       String           @map("order_item_id")
+  orderItem         OrderItem        @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  userId            String           @map("user_id")
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason            String           @db.Text
+  resolution        ReturnResolution @default(REFUND)
+  exchangeVariantId String?          @map("exchange_variant_id")
+  status            ReturnStatus     @default(REQUESTED)
+  trackingNumber    String?          @map("tracking_number")
+  pickupAddress     Json?            @map("pickup_address")
+  adminNotes        String?          @map("admin_notes") @db.Text
+  refundAmount      Decimal?         @map("refund_amount") @db.Decimal(10, 2)
+  proofImages       String[]         @map("proof_images")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
 
+  @@index([returnReference])
   @@index([orderId])
   @@index([userId])
   @@index([status])
