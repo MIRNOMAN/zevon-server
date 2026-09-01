@@ -9,7 +9,10 @@ describe('StockAlertsController', () => {
 
   beforeEach(async () => {
     const serviceMock = {
-      subscribe: jest.fn().mockResolvedValue({ isAlreadyInStock: false, subscriptionId: 'alert-1' }),
+      subscribe: jest.fn().mockResolvedValue({
+        isAlreadyInStock: false,
+        subscriptionId: 'alert-1',
+      }),
       findMyAlerts: jest.fn().mockResolvedValue([]),
       cancelAlert: jest.fn().mockResolvedValue({ id: 'alert-1' }),
       findAll: jest.fn().mockResolvedValue({ alerts: [], meta: {} }),

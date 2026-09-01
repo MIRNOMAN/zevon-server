@@ -11,7 +11,9 @@ describe('RecommendationsController', () => {
     const serviceMock = {
       trackView: jest.fn().mockResolvedValue({ recorded: true }),
       getRecentlyViewed: jest.fn().mockResolvedValue({ total: 1, items: [] }),
-      getYouMayAlsoLike: jest.fn().mockResolvedValue({ total: 1, recommendations: [] }),
+      getYouMayAlsoLike: jest
+        .fn()
+        .mockResolvedValue({ total: 1, recommendations: [] }),
       getTrending: jest.fn().mockResolvedValue({ total: 1, items: [] }),
     };
 
@@ -20,7 +22,9 @@ describe('RecommendationsController', () => {
       providers: [{ provide: RecommendationsService, useValue: serviceMock }],
     }).compile();
 
-    controller = module.get<RecommendationsController>(RecommendationsController);
+    controller = module.get<RecommendationsController>(
+      RecommendationsController,
+    );
     service = module.get(RecommendationsService);
   });
 

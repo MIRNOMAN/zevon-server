@@ -21,14 +21,14 @@ describe('PaymentsController', () => {
     const serviceMock = {
       createCheckoutSession: jest.fn().mockResolvedValue(mockSessionResponse),
       handleWebhook: jest.fn().mockResolvedValue({ received: true }),
-      getStripeConfig: jest.fn().mockReturnValue({ publishableKey: 'pk_test_123', currency: 'bdt' }),
+      getStripeConfig: jest
+        .fn()
+        .mockReturnValue({ publishableKey: 'pk_test_123', currency: 'bdt' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PaymentsController],
-      providers: [
-        { provide: PaymentsService, useValue: serviceMock },
-      ],
+      providers: [{ provide: PaymentsService, useValue: serviceMock }],
     }).compile();
 
     controller = module.get<PaymentsController>(PaymentsController);
@@ -58,7 +58,9 @@ describe('PaymentsController', () => {
 
   it('POST /payments/webhook should throw BadRequestException if rawBody is missing', async () => {
     const reqMock: any = {};
-    await expect(controller.handleWebhook('sig-123', reqMock)).rejects.toThrow(BadRequestException);
+    await expect(controller.handleWebhook('sig-123', reqMock)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('GET /payments/config should return stripe config', () => {

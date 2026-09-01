@@ -155,7 +155,7 @@ describe('ShippingService', () => {
 
     it('should fallback to default zone (Outside Dhaka) when unlisted city is passed', async () => {
       const result = await service.calculateShipping(undefined, {
-        city: 'Cox\'s Bazar',
+        city: "Cox's Bazar",
         cartSubtotal: 1000,
       });
 
@@ -243,7 +243,9 @@ describe('ShippingService', () => {
     });
 
     it('remove should block deletion if shipping zone has linked orders', async () => {
-      (prisma.shippingZone.findUnique as jest.Mock).mockResolvedValue(mockZones[0]);
+      (prisma.shippingZone.findUnique as jest.Mock).mockResolvedValue(
+        mockZones[0],
+      );
 
       await expect(service.remove('zone-inside-dhaka')).rejects.toThrow(
         BadRequestException,

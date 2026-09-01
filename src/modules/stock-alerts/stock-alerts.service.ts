@@ -37,7 +37,9 @@ export class StockAlertsService {
     });
 
     if (!variant || !variant.product.isPublished) {
-      throw new NotFoundException('The requested product variant was not found');
+      throw new NotFoundException(
+        'The requested product variant was not found',
+      );
     }
 
     // 2. If item is currently in stock (> 0), inform customer
@@ -213,7 +215,10 @@ export class StockAlertsService {
   /**
    * Customer / Guest: Cancel a stock alert subscription.
    */
-  async cancelAlert(id: string, userOrEmail?: { userId?: string; email?: string }) {
+  async cancelAlert(
+    id: string,
+    userOrEmail?: { userId?: string; email?: string },
+  ) {
     const alert = await this.prisma.stockAlert.findUnique({
       where: { id },
     });
@@ -227,7 +232,9 @@ export class StockAlertsService {
       alert.userId &&
       alert.userId !== userOrEmail.userId
     ) {
-      throw new BadRequestException('You do not have permission to cancel this alert');
+      throw new BadRequestException(
+        'You do not have permission to cancel this alert',
+      );
     }
 
     return this.prisma.stockAlert.update({

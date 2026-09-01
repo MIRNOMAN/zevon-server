@@ -53,10 +53,7 @@ export class ShippingController {
     @CurrentUser('userId') userId?: string,
     @Body() calculateShippingDto?: CalculateShippingDto,
   ) {
-    return this.shippingService.calculateShipping(
-      userId,
-      calculateShippingDto,
-    );
+    return this.shippingService.calculateShipping(userId, calculateShippingDto);
   }
 
   @Get('public')
@@ -126,10 +123,7 @@ export class ShippingController {
   @ApiOperation({
     summary: 'Update shipping zone parameters and rate rules (Admin/Manager)',
   })
-  update(
-    @Param('id') id: string,
-    @Body() updateDto: UpdateShippingZoneDto,
-  ) {
+  update(@Param('id') id: string, @Body() updateDto: UpdateShippingZoneDto) {
     return this.shippingService.update(id, updateDto);
   }
 

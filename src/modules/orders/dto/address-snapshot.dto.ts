@@ -7,7 +7,10 @@ export class AddressSnapshotDto {
   @IsNotEmpty({ message: 'Full name is required' })
   fullName!: string;
 
-  @ApiProperty({ example: '+8801700000000', description: 'Recipient phone number' })
+  @ApiProperty({
+    example: '+8801700000000',
+    description: 'Recipient phone number',
+  })
   @IsString()
   @IsNotEmpty({ message: 'Phone number is required' })
   phone!: string;
@@ -33,7 +36,10 @@ export class AddressSnapshotDto {
   @IsNotEmpty({ message: 'City is required' })
   city!: string;
 
-  @ApiPropertyOptional({ example: 'Dhaka Division', description: 'State or Division' })
+  @ApiPropertyOptional({
+    example: 'Dhaka Division',
+    description: 'State or Division',
+  })
   @IsOptional()
   @IsString()
   state?: string;

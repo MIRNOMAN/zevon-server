@@ -55,7 +55,9 @@ export class ReturnsService {
     }
 
     if (order.userId !== userId) {
-      throw new BadRequestException('You do not have permission to return items from this order');
+      throw new BadRequestException(
+        'You do not have permission to return items from this order',
+      );
     }
 
     // 2. Validate Order Status (Must be DELIVERED)
@@ -67,7 +69,8 @@ export class ReturnsService {
 
     // 3. Check 14-Day Return Policy Window
     const daysSinceDelivery = Math.floor(
-      (Date.now() - new Date(order.updatedAt).getTime()) / (1000 * 60 * 60 * 24),
+      (Date.now() - new Date(order.updatedAt).getTime()) /
+        (1000 * 60 * 60 * 24),
     );
     if (daysSinceDelivery > 14) {
       throw new BadRequestException(
@@ -78,7 +81,9 @@ export class ReturnsService {
     // 4. Verify Order Item belongs to Order
     const orderItem = order.items.find((item) => item.id === orderItemId);
     if (!orderItem) {
-      throw new NotFoundException('The specified item does not belong to this order');
+      throw new NotFoundException(
+        'The specified item does not belong to this order',
+      );
     }
 
     // 5. Prevent Duplicate Active Return Requests for the same item
@@ -98,7 +103,9 @@ export class ReturnsService {
     // 6. Validate Exchange Variant (if EXCHANGE chosen)
     if (resolution === ReturnResolution.EXCHANGE) {
       if (!exchangeVariantId) {
-        throw new BadRequestException('exchangeVariantId is required when resolution is set to EXCHANGE');
+        throw new BadRequestException(
+          'exchangeVariantId is required when resolution is set to EXCHANGE',
+        );
       }
 
       const exchangeVariant = await this.prisma.productVariant.findUnique({
@@ -107,7 +114,9 @@ export class ReturnsService {
       });
 
       if (!exchangeVariant || !exchangeVariant.product.isPublished) {
-        throw new NotFoundException('The requested exchange product variant is unavailable');
+        throw new NotFoundException(
+          'The requested exchange product variant is unavailable',
+        );
       }
 
       if (exchangeVariant.stock <= 0) {
@@ -135,7 +144,8 @@ export class ReturnsService {
         userId,
         reason: reason.trim(),
         resolution,
-        exchangeVariantId: resolution === ReturnResolution.EXCHANGE ? exchangeVariantId : null,
+        exchangeVariantId:
+          resolution === ReturnResolution.EXCHANGE ? exchangeVariantId : null,
         status: ReturnStatus.REQUESTED,
         proofImages,
         pickupAddress: resolvedPickup as unknown as Prisma.InputJsonValue,
@@ -145,7 +155,9 @@ export class ReturnsService {
         orderItem: {
           include: {
             product: { select: { id: true, title: true, slug: true } },
-            variant: { select: { id: true, sku: true, size: true, color: true } },
+            variant: {
+              select: { id: true, sku: true, size: true, color: true },
+            },
           },
         },
       },
@@ -162,7 +174,9 @@ export class ReturnsService {
       resolution: returnRequest.resolution,
       reason: returnRequest.reason,
       proofImages: returnRequest.proofImages,
-      estimatedRefundAmount: returnRequest.refundAmount ? Number(returnRequest.refundAmount) : null,
+      estimatedRefundAmount: returnRequest.refundAmount
+        ? Number(returnRequest.refundAmount)
+        : null,
       orderNumber: order.orderNumber,
       item: {
         productTitle: returnRequest.orderItem.productTitle,
@@ -201,10 +215,13 @@ export class ReturnsService {
     });
 
     if (!returnReq) {
-      throw new NotFoundException(`Return reference "${cleanRef}" was not found.`);
+      throw new NotFoundException(
+        `Return reference "${cleanRef}" was not found.`,
+      );
     }
 
-    const pickupAddr = (returnReq.pickupAddress as Record<string, unknown>) || {};
+    const pickupAddr =
+      (returnReq.pickupAddress as Record<string, unknown>) || {};
     const returnEmail = (
       returnReq.order.user?.email ||
       (pickupAddr.email as string) ||
@@ -220,7 +237,8 @@ export class ReturnsService {
     const isPhoneMatch =
       Boolean(digitsOnlyInput) &&
       Boolean(returnPhone) &&
-      (returnPhone.includes(digitsOnlyInput) || digitsOnlyInput.includes(returnPhone));
+      (returnPhone.includes(digitsOnlyInput) ||
+        digitsOnlyInput.includes(returnPhone));
 
     if (!isEmailMatch && !isPhoneMatch) {
       throw new NotFoundException(
@@ -242,7 +260,8 @@ export class ReturnsService {
       {
         key: 'REQUESTED',
         title: 'Return Requested',
-        description: 'Return application submitted and under review by our quality team.',
+        description:
+          'Return application submitted and under review by our quality team.',
         completed: !isRejected && currentIndex >= 0,
         current: returnReq.status === ReturnStatus.REQUESTED,
         timestamp: returnReq.createdAt,
@@ -264,7 +283,10 @@ export class ReturnsService {
         timestamp: currentIndex >= 2 ? returnReq.updatedAt : null,
       },
       {
-        key: returnReq.resolution === ReturnResolution.REFUND ? 'REFUNDED' : 'EXCHANGE_DISPATCHED',
+        key:
+          returnReq.resolution === ReturnResolution.REFUND
+            ? 'REFUNDED'
+            : 'EXCHANGE_DISPATCHED',
         title:
           returnReq.resolution === ReturnResolution.REFUND
             ? 'Refund Processed'
@@ -299,7 +321,9 @@ export class ReturnsService {
       reason: returnReq.reason,
       proofImages: returnReq.proofImages,
       trackingNumber: returnReq.trackingNumber,
-      refundAmount: returnReq.refundAmount ? Number(returnReq.refundAmount) : null,
+      refundAmount: returnReq.refundAmount
+        ? Number(returnReq.refundAmount)
+        : null,
       adminNotes: returnReq.adminNotes,
       createdAt: returnReq.createdAt,
       updatedAt: returnReq.updatedAt,
@@ -375,12 +399,16 @@ export class ReturnsService {
     });
 
     if (!returnReq || returnReq.userId !== userId) {
-      throw new NotFoundException(`Return request with ID "${id}" was not found`);
+      throw new NotFoundException(
+        `Return request with ID "${id}" was not found`,
+      );
     }
 
     return {
       ...returnReq,
-      refundAmount: returnReq.refundAmount ? Number(returnReq.refundAmount) : null,
+      refundAmount: returnReq.refundAmount
+        ? Number(returnReq.refundAmount)
+        : null,
       orderItem: {
         ...returnReq.orderItem,
         unitPrice: Number(returnReq.orderItem.unitPrice),
@@ -405,7 +433,11 @@ export class ReturnsService {
         ? {
             OR: [
               { returnReference: { contains: search, mode: 'insensitive' } },
-              { order: { orderNumber: { contains: search, mode: 'insensitive' } } },
+              {
+                order: {
+                  orderNumber: { contains: search, mode: 'insensitive' },
+                },
+              },
               { user: { name: { contains: search, mode: 'insensitive' } } },
               { user: { email: { contains: search, mode: 'insensitive' } } },
             ],
@@ -477,12 +509,16 @@ export class ReturnsService {
     });
 
     if (!returnReq) {
-      throw new NotFoundException(`Return request with ID "${id}" was not found`);
+      throw new NotFoundException(
+        `Return request with ID "${id}" was not found`,
+      );
     }
 
     return {
       ...returnReq,
-      refundAmount: returnReq.refundAmount ? Number(returnReq.refundAmount) : null,
+      refundAmount: returnReq.refundAmount
+        ? Number(returnReq.refundAmount)
+        : null,
       orderItem: {
         ...returnReq.orderItem,
         unitPrice: Number(returnReq.orderItem.unitPrice),
@@ -500,7 +536,10 @@ export class ReturnsService {
     const { status, adminNotes, refundAmount, trackingNumber } = updateDto;
 
     // Optional: If return is RECEIVED, restore returned variant stock
-    if (status === ReturnStatus.RECEIVED && returnReq.status !== ReturnStatus.RECEIVED) {
+    if (
+      status === ReturnStatus.RECEIVED &&
+      returnReq.status !== ReturnStatus.RECEIVED
+    ) {
       if (returnReq.orderItem.variantId) {
         await this.prisma.productVariant.update({
           where: { id: returnReq.orderItem.variantId },
@@ -521,7 +560,9 @@ export class ReturnsService {
       data: {
         status,
         ...(adminNotes !== undefined ? { adminNotes } : {}),
-        ...(refundAmount !== undefined ? { refundAmount: new Prisma.Decimal(refundAmount) } : {}),
+        ...(refundAmount !== undefined
+          ? { refundAmount: new Prisma.Decimal(refundAmount) }
+          : {}),
         ...(trackingNumber !== undefined ? { trackingNumber } : {}),
       },
       include: {
@@ -534,10 +575,15 @@ export class ReturnsService {
   /**
    * Admin: Approve return request.
    */
-  async approveReturn(id: string, adminNotes?: string, trackingNumber?: string) {
+  async approveReturn(
+    id: string,
+    adminNotes?: string,
+    trackingNumber?: string,
+  ) {
     return this.updateStatus(id, {
       status: ReturnStatus.APPROVED,
-      adminNotes: adminNotes || 'Return approved. Awaiting item arrival at warehouse.',
+      adminNotes:
+        adminNotes || 'Return approved. Awaiting item arrival at warehouse.',
       trackingNumber,
     });
   }
@@ -547,7 +593,9 @@ export class ReturnsService {
    */
   async rejectReturn(id: string, rejectionReason: string) {
     if (!rejectionReason || !rejectionReason.trim()) {
-      throw new BadRequestException('Rejection reason (adminNotes) is required to decline a return request');
+      throw new BadRequestException(
+        'Rejection reason (adminNotes) is required to decline a return request',
+      );
     }
     return this.updateStatus(id, {
       status: ReturnStatus.REJECTED,
@@ -561,7 +609,9 @@ export class ReturnsService {
   async receiveReturn(id: string, adminNotes?: string) {
     return this.updateStatus(id, {
       status: ReturnStatus.RECEIVED,
-      adminNotes: adminNotes || 'Item received at warehouse and quality inspection completed.',
+      adminNotes:
+        adminNotes ||
+        'Item received at warehouse and quality inspection completed.',
     });
   }
 
@@ -578,7 +628,8 @@ export class ReturnsService {
     return this.updateStatus(id, {
       status: ReturnStatus.REFUNDED,
       refundAmount: amount,
-      adminNotes: adminNotes || 'Refund processed to customer original payment method.',
+      adminNotes:
+        adminNotes || 'Refund processed to customer original payment method.',
     });
   }
 }

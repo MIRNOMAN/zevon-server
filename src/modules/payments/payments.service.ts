@@ -123,9 +123,9 @@ export class PaymentsService {
           currency: this.currency,
           product_data: {
             name: item.productTitle,
-            description: [item.color, item.size, item.sku]
-              .filter(Boolean)
-              .join(' | ') || undefined,
+            description:
+              [item.color, item.size, item.sku].filter(Boolean).join(' | ') ||
+              undefined,
           },
           unit_amount: Math.round(Number(item.unitPrice) * 100),
         },
@@ -219,28 +219,32 @@ export class PaymentsService {
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : 'Invalid signature';
-      this.logger.error(`❌ Stripe Webhook Signature Verification Failed: ${errorMessage}`);
+      this.logger.error(
+        `❌ Stripe Webhook Signature Verification Failed: ${errorMessage}`,
+      );
       throw new BadRequestException(`Webhook Error: ${errorMessage}`);
     }
 
-    this.logger.log(`🔔 Stripe Webhook received: [${event.type}] (ID: ${event.id})`);
+    this.logger.log(
+      `🔔 Stripe Webhook received: [${event.type}] (ID: ${event.id})`,
+    );
 
     // Handle specific Stripe event types
     switch (event.type) {
       case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session;
+        const session = event.data.object;
         await this.handleCheckoutSessionCompleted(session);
         break;
       }
 
       case 'payment_intent.payment_failed': {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const paymentIntent = event.data.object;
         await this.handlePaymentIntentFailed(paymentIntent);
         break;
       }
 
       case 'charge.refunded': {
-        const charge = event.data.object as Stripe.Charge;
+        const charge = event.data.object;
         await this.handleChargeRefunded(charge);
         break;
       }
@@ -262,9 +266,10 @@ export class PaymentsService {
    * - Updates order status to CONFIRMED / PROCESSING
    * - Dispatches payment receipt email to customer
    */
-  private async handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
-    const orderId =
-      session.metadata?.orderId || session.client_reference_id;
+  private async handleCheckoutSessionCompleted(
+    session: Stripe.Checkout.Session,
+  ) {
+    const orderId = session.metadata?.orderId || session.client_reference_id;
 
     if (!orderId) {
       this.logger.warn(
@@ -284,13 +289,17 @@ export class PaymentsService {
     });
 
     if (!order) {
-      this.logger.error(`❌ Order with ID "${orderId}" not found for webhook session ${session.id}`);
+      this.logger.error(
+        `❌ Order with ID "${orderId}" not found for webhook session ${session.id}`,
+      );
       return;
     }
 
     // Idempotency: skip if already marked as PAID
     if (order.paymentStatus === PaymentStatus.PAID) {
-      this.logger.log(`ℹ️ Order #${order.orderNumber} is already marked as PAID.`);
+      this.logger.log(
+        `ℹ️ Order #${order.orderNumber} is already marked as PAID.`,
+      );
       return;
     }
 
@@ -319,7 +328,7 @@ export class PaymentsService {
     const customerEmail =
       updatedOrder.user?.email ||
       session.customer_details?.email ||
-      (order.shippingAddress as Record<string, unknown>)?.email as string;
+      ((order.shippingAddress as Record<string, unknown>)?.email as string);
 
     if (customerEmail) {
       const shippingAddr =

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import {
   appConfig,
@@ -31,6 +32,10 @@ import { AnalyticsModule } from './modules/analytics/analytics.module.js';
 import { StockAlertsModule } from './modules/stock-alerts/stock-alerts.module.js';
 import { CurrencyModule } from './modules/currency/currency.module.js';
 import { RecommendationsModule } from './modules/recommendations/recommendations.module.js';
+import { LoyaltyModule } from './modules/loyalty/loyalty.module.js';
+import { ReferralsModule } from './modules/referrals/referrals.module.js';
+import { AbandonedCartModule } from './modules/abandoned-cart/abandoned-cart.module.js';
+import { GiftCardsModule } from './modules/gift-cards/gift-cards.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -42,6 +47,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
       load: [appConfig, databaseConfig, jwtConfig, stripeConfig, mailConfig],
       validate: validateEnv,
     }),
+    ScheduleModule.forRoot(),
 
     // ── Database ─────────────────────────────────────────────────
     DatabaseModule,
@@ -68,6 +74,10 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     StockAlertsModule,
     CurrencyModule,
     RecommendationsModule,
+    LoyaltyModule,
+    ReferralsModule,
+    AbandonedCartModule,
+    GiftCardsModule,
   ],
   providers: [
     // 1. Global JWT guard — all routes are protected unless decorated with @Public()

@@ -128,7 +128,9 @@ describe('AnalyticsService', () => {
       expect(dashboard.dailySalesChart).toHaveLength(30);
       expect(dashboard.ordersByStatus.DELIVERED).toBe(15);
       expect(dashboard.topSellingProducts).toHaveLength(1);
-      expect(dashboard.topSellingProducts[0].productTitle).toBe('Oversized Tee');
+      expect(dashboard.topSellingProducts[0].productTitle).toBe(
+        'Oversized Tee',
+      );
     });
   });
 

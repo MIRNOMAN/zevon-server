@@ -45,10 +45,7 @@ export class PaymentsController {
     @CurrentUser('userId') userId: string,
     @Body() createSessionDto: CreateCheckoutSessionDto,
   ) {
-    return this.paymentsService.createCheckoutSession(
-      userId,
-      createSessionDto,
-    );
+    return this.paymentsService.createCheckoutSession(userId, createSessionDto);
   }
 
   @Post('webhook')
@@ -82,7 +79,8 @@ export class PaymentsController {
   @Public()
   @ResponseMessage('Stripe configuration retrieved successfully')
   @ApiOperation({
-    summary: 'Get public Stripe client configuration (publishable key & currency)',
+    summary:
+      'Get public Stripe client configuration (publishable key & currency)',
   })
   getStripeConfig() {
     return this.paymentsService.getStripeConfig();

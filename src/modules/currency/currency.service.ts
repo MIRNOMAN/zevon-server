@@ -22,7 +22,10 @@ export class CurrencyService {
     GBP: 0.0066, // 1 GBP = ~151.52 BDT
   };
 
-  private readonly currencies: Record<string, { symbol: string; name: string; decimals: number }> = {
+  private readonly currencies: Record<
+    string,
+    { symbol: string; name: string; decimals: number }
+  > = {
     BDT: { symbol: '৳', name: 'Bangladeshi Taka', decimals: 2 },
     USD: { symbol: '$', name: 'US Dollar', decimals: 2 },
     EUR: { symbol: '€', name: 'Euro', decimals: 2 },
@@ -33,20 +36,23 @@ export class CurrencyService {
    * Returns active exchange rates with metadata and formatting rules.
    */
   getRates() {
-    const list: CurrencyMetadata[] = Object.keys(this.currencies).map((code) => {
-      const meta = this.currencies[code];
-      const rateFromBDT = this.rates[code];
-      const rateToBDT = rateFromBDT > 0 ? Number((1 / rateFromBDT).toFixed(4)) : 1;
+    const list: CurrencyMetadata[] = Object.keys(this.currencies).map(
+      (code) => {
+        const meta = this.currencies[code];
+        const rateFromBDT = this.rates[code];
+        const rateToBDT =
+          rateFromBDT > 0 ? Number((1 / rateFromBDT).toFixed(4)) : 1;
 
-      return {
-        code,
-        symbol: meta.symbol,
-        name: meta.name,
-        rateFromBDT,
-        rateToBDT,
-        decimalPlaces: meta.decimals,
-      };
-    });
+        return {
+          code,
+          symbol: meta.symbol,
+          name: meta.name,
+          rateFromBDT,
+          rateToBDT,
+          decimalPlaces: meta.decimals,
+        };
+      },
+    );
 
     return {
       baseCurrency: 'BDT',
@@ -81,14 +87,18 @@ export class CurrencyService {
 
     // 2. Convert from Base BDT to Target
     const rateTo = this.rates[toCode];
-    const rawTargetAmount = toCode === 'BDT' ? amountInBdt : amountInBdt * rateTo;
+    const rawTargetAmount =
+      toCode === 'BDT' ? amountInBdt : amountInBdt * rateTo;
 
     const targetMeta = this.currencies[toCode];
     const roundedAmount = Number(rawTargetAmount.toFixed(targetMeta.decimals));
-    const formatted = `${targetMeta.symbol}${roundedAmount.toLocaleString('en-US', {
-      minimumFractionDigits: targetMeta.decimals,
-      maximumFractionDigits: targetMeta.decimals,
-    })} ${toCode}`;
+    const formatted = `${targetMeta.symbol}${roundedAmount.toLocaleString(
+      'en-US',
+      {
+        minimumFractionDigits: targetMeta.decimals,
+        maximumFractionDigits: targetMeta.decimals,
+      },
+    )} ${toCode}`;
 
     return {
       originalAmount: amount,
@@ -106,7 +116,10 @@ export class CurrencyService {
    * Geo-Location & IP detection engine:
    * Inspects HTTP headers (Cloudflare, Proxy, Client IP) and recommends localized currency.
    */
-  detectLocation(headers: Record<string, string | string[] | undefined>, clientIp?: string) {
+  detectLocation(
+    headers: Record<string, string | string[] | undefined>,
+    clientIp?: string,
+  ) {
     const headerCountry =
       (headers['cf-ipcountry'] as string) ||
       (headers['x-country-code'] as string) ||
@@ -116,7 +129,11 @@ export class CurrencyService {
 
     // If country header is missing, detect from common IP prefixes or fallback
     if (!countryCode) {
-      if (clientIp?.startsWith('103.') || clientIp?.startsWith('118.') || clientIp?.startsWith('180.')) {
+      if (
+        clientIp?.startsWith('103.') ||
+        clientIp?.startsWith('118.') ||
+        clientIp?.startsWith('180.')
+      ) {
         countryCode = 'BD';
       } else {
         countryCode = 'US'; // Default international fallback
@@ -166,7 +183,8 @@ export class CurrencyService {
         break;
     }
 
-    const currencyMeta = this.currencies[recommendedCurrency] || this.currencies.USD;
+    const currencyMeta =
+      this.currencies[recommendedCurrency] || this.currencies.USD;
 
     return {
       detectedCountry: countryCode,

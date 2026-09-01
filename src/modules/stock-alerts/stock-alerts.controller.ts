@@ -40,7 +40,8 @@ export class StockAlertsController {
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Subscribed to automated email notifications upon variant restock',
+    description:
+      'Subscribed to automated email notifications upon variant restock',
   })
   subscribe(
     @Body() dto: SubscribeStockAlertDto,
@@ -65,10 +66,7 @@ export class StockAlertsController {
   @ApiOperation({
     summary: 'Cancel a back-in-stock subscription',
   })
-  cancelAlert(
-    @Param('id') id: string,
-    @CurrentUser('userId') userId?: string,
-  ) {
+  cancelAlert(@Param('id') id: string, @CurrentUser('userId') userId?: string) {
     return this.stockAlertsService.cancelAlert(id, { userId });
   }
 
@@ -79,7 +77,8 @@ export class StockAlertsController {
   @ApiBearerAuth('JWT-auth')
   @ResponseMessage('Stock alerts retrieved successfully')
   @ApiOperation({
-    summary: 'List all customer stock alert subscriptions with filters and search (Admin/Manager)',
+    summary:
+      'List all customer stock alert subscriptions with filters and search (Admin/Manager)',
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })

@@ -29,8 +29,7 @@ export class UpdatePaymentStatusDto {
   @ApiProperty({
     enum: PaymentStatus,
     example: PaymentStatus.PAID,
-    description:
-      'Payment transaction status (PENDING, PAID, FAILED, REFUNDED)',
+    description: 'Payment transaction status (PENDING, PAID, FAILED, REFUNDED)',
   })
   @IsEnum(PaymentStatus, {
     message: 'paymentStatus must be PENDING, PAID, FAILED, or REFUNDED',

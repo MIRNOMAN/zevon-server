@@ -134,7 +134,8 @@ export class OrdersController {
   @ApiBearerAuth('JWT-auth')
   @ResponseMessage('Orders retrieved successfully')
   @ApiOperation({
-    summary: 'List all store orders with filters, search, and pagination (Admin/Manager)',
+    summary:
+      'List all store orders with filters, search, and pagination (Admin/Manager)',
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
@@ -171,9 +172,12 @@ export class OrdersController {
   @Patch(':id/assign-courier')
   @Roles('ADMIN', 'MANAGER')
   @ApiBearerAuth('JWT-auth')
-  @ResponseMessage('Courier details assigned and order status updated to SHIPPED')
+  @ResponseMessage(
+    'Courier details assigned and order status updated to SHIPPED',
+  )
   @ApiOperation({
-    summary: 'Assign courier partner and tracking code, setting order to SHIPPED (Admin/Manager)',
+    summary:
+      'Assign courier partner and tracking code, setting order to SHIPPED (Admin/Manager)',
   })
   assignCourier(
     @Param('id') id: string,
@@ -187,7 +191,8 @@ export class OrdersController {
   @ApiBearerAuth('JWT-auth')
   @ResponseMessage('Order printable invoice generated successfully')
   @ApiOperation({
-    summary: 'Generate structured printable invoice JSON for an order (Admin/Manager)',
+    summary:
+      'Generate structured printable invoice JSON for an order (Admin/Manager)',
   })
   generateInvoice(@Param('id') id: string) {
     return this.ordersService.generateInvoice(id);

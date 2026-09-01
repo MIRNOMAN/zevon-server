@@ -42,10 +42,7 @@ export class ShippingService {
     // 1. Resolve Cart Subtotal (from DTO or active user cart in DB)
     let currentSubtotal = dto.cartSubtotal;
 
-    if (
-      (currentSubtotal === undefined || currentSubtotal === null) &&
-      userId
-    ) {
+    if ((currentSubtotal === undefined || currentSubtotal === null) && userId) {
       const userCart = await this.prisma.cart.findUnique({
         where: { userId },
         include: {
@@ -89,16 +86,12 @@ export class ShippingService {
     // 3. Match Shipping Zone
     let matchedZone = null;
     let matchReason:
-      | 'DIRECT_ID'
-      | 'POSTAL_CODE'
-      | 'CITY'
-      | 'DEFAULT_ZONE'
-      | 'FALLBACK' = 'FALLBACK';
+      'DIRECT_ID' | 'POSTAL_CODE' | 'CITY' | 'DEFAULT_ZONE' | 'FALLBACK' =
+      'FALLBACK';
 
     // 3a. Direct ID match
     if (shippingZoneId) {
-      matchedZone =
-        activeZones.find((z) => z.id === shippingZoneId) || null;
+      matchedZone = activeZones.find((z) => z.id === shippingZoneId) || null;
       if (matchedZone) {
         matchReason = 'DIRECT_ID';
       }
@@ -136,9 +129,7 @@ export class ShippingService {
             );
           }),
         ) ||
-        activeZones.find((z) =>
-          z.name.toLowerCase().includes(cleanCity),
-        ) ||
+        activeZones.find((z) => z.name.toLowerCase().includes(cleanCity)) ||
         null;
 
       if (matchedZone) {
@@ -224,8 +215,7 @@ export class ShippingService {
           estimatedDeliveryDays:
             matchedZone.expressDeliveryDays || 'Same-Day Delivery',
           description:
-            matchedZone.expressDeliveryDays ||
-            'Fast express doorstep delivery',
+            matchedZone.expressDeliveryDays || 'Fast express doorstep delivery',
         }
       : null;
 
@@ -302,9 +292,7 @@ export class ShippingService {
       freeShippingThreshold: zone.freeShippingThreshold
         ? Number(zone.freeShippingThreshold)
         : null,
-      minOrderAmount: zone.minOrderAmount
-        ? Number(zone.minOrderAmount)
-        : 0,
+      minOrderAmount: zone.minOrderAmount ? Number(zone.minOrderAmount) : 0,
     }));
   }
 
@@ -393,9 +381,7 @@ export class ShippingService {
       freeShippingThreshold: zone.freeShippingThreshold
         ? Number(zone.freeShippingThreshold)
         : null,
-      minOrderAmount: zone.minOrderAmount
-        ? Number(zone.minOrderAmount)
-        : 0,
+      minOrderAmount: zone.minOrderAmount ? Number(zone.minOrderAmount) : 0,
       totalOrdersCount: zone._count.orders,
     }));
 
@@ -424,9 +410,7 @@ export class ShippingService {
     });
 
     if (!zone) {
-      throw new NotFoundException(
-        `Shipping zone with ID "${id}" not found`,
-      );
+      throw new NotFoundException(`Shipping zone with ID "${id}" not found`);
     }
 
     return {
@@ -436,9 +420,7 @@ export class ShippingService {
       freeShippingThreshold: zone.freeShippingThreshold
         ? Number(zone.freeShippingThreshold)
         : null,
-      minOrderAmount: zone.minOrderAmount
-        ? Number(zone.minOrderAmount)
-        : 0,
+      minOrderAmount: zone.minOrderAmount ? Number(zone.minOrderAmount) : 0,
       totalOrdersCount: zone._count.orders,
     };
   }

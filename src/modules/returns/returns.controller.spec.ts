@@ -32,19 +32,21 @@ describe('ReturnsController', () => {
   beforeEach(async () => {
     const serviceMock = {
       create: jest.fn().mockResolvedValue(mockReturnResponse),
-      trackReturn: jest.fn().mockResolvedValue({ returnReference: 'RET-20260901-4821', steps: [] }),
+      trackReturn: jest
+        .fn()
+        .mockResolvedValue({ returnReference: 'RET-20260901-4821', steps: [] }),
       findMyReturns: jest.fn().mockResolvedValue({ returns: [], meta: {} }),
       findMyReturnById: jest.fn().mockResolvedValue(mockReturnResponse),
       findAll: jest.fn().mockResolvedValue({ returns: [], meta: {} }),
       findOne: jest.fn().mockResolvedValue(mockReturnResponse),
-      updateStatus: jest.fn().mockResolvedValue({ status: ReturnStatus.APPROVED }),
+      updateStatus: jest
+        .fn()
+        .mockResolvedValue({ status: ReturnStatus.APPROVED }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ReturnsController],
-      providers: [
-        { provide: ReturnsService, useValue: serviceMock },
-      ],
+      providers: [{ provide: ReturnsService, useValue: serviceMock }],
     }).compile();
 
     controller = module.get<ReturnsController>(ReturnsController);

@@ -23,7 +23,9 @@ export class RecommendationsService {
     });
 
     if (!product || !product.isPublished) {
-      throw new NotFoundException('Product not found or is currently unpublished');
+      throw new NotFoundException(
+        'Product not found or is currently unpublished',
+      );
     }
 
     const view = await this.prisma.productView.create({
@@ -105,8 +107,12 @@ export class RecommendationsService {
           category: p.category,
           primaryImage: p.images[0]?.url || null,
           variantsCount: p.variants.length,
-          availableSizes: Array.from(new Set(p.variants.map((varItem) => varItem.size))),
-          availableColors: Array.from(new Set(p.variants.map((varItem) => varItem.color))),
+          availableSizes: Array.from(
+            new Set(p.variants.map((varItem) => varItem.size)),
+          ),
+          availableColors: Array.from(
+            new Set(p.variants.map((varItem) => varItem.color)),
+          ),
           inStock: p.variants.some((varItem) => varItem.stock > 0),
           lastViewedAt: v.viewedAt,
         });
@@ -137,7 +143,9 @@ export class RecommendationsService {
     });
 
     if (!targetProduct) {
-      throw new NotFoundException(`Product with ID "${productId}" was not found`);
+      throw new NotFoundException(
+        `Product with ID "${productId}" was not found`,
+      );
     }
 
     const targetPrice = Number(targetProduct.basePrice);
@@ -213,12 +221,17 @@ export class RecommendationsService {
     // Sort by score descending
     scoredCandidates.sort((a, b) => b.score - a.score);
 
-    let recommendations = scoredCandidates.slice(0, limit).map((c) => this.formatProductCard(c.product));
+    let recommendations = scoredCandidates
+      .slice(0, limit)
+      .map((c) => this.formatProductCard(c.product));
 
     // 3. Fallback: If not enough matches, fill up with featured/popular products
     if (recommendations.length < limit) {
       const remainingLimit = limit - recommendations.length;
-      const existingIds = new Set([productId, ...recommendations.map((r) => r.id)]);
+      const existingIds = new Set([
+        productId,
+        ...recommendations.map((r) => r.id),
+      ]);
 
       const fallbackProducts = await this.prisma.product.findMany({
         where: {
@@ -231,7 +244,13 @@ export class RecommendationsService {
           category: { select: { id: true, name: true, slug: true } },
           images: { where: { isPrimary: true }, take: 1 },
           variants: {
-            select: { id: true, sku: true, size: true, color: true, stock: true },
+            select: {
+              id: true,
+              sku: true,
+              size: true,
+              color: true,
+              stock: true,
+            },
           },
         },
       });

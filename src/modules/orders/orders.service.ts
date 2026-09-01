@@ -190,16 +190,13 @@ export class OrdersService {
     }
 
     // 4. Calculate Shipping Charge & Matched Zone
-    const shippingCalc = await this.shippingService.calculateShipping(
-      userId,
-      {
-        city: shippingAddressSnapshot.city,
-        postalCode: shippingAddressSnapshot.postalCode,
-        shippingZoneId: checkoutDto.shippingZoneId,
-        cartSubtotal: subtotal,
-        deliveryType: checkoutDto.deliveryType,
-      },
-    );
+    const shippingCalc = await this.shippingService.calculateShipping(userId, {
+      city: shippingAddressSnapshot.city,
+      postalCode: shippingAddressSnapshot.postalCode,
+      shippingZoneId: checkoutDto.shippingZoneId,
+      cartSubtotal: subtotal,
+      deliveryType: checkoutDto.deliveryType,
+    });
 
     const shippingCost = shippingCalc.shippingCost;
     const shippingZoneId = shippingCalc.shippingZone?.id || null;
@@ -283,8 +280,10 @@ export class OrdersService {
           totalAmount: new Prisma.Decimal(totalAmount),
           couponId: appliedCouponId,
           shippingZoneId,
-          shippingAddress: shippingAddressSnapshot as unknown as Prisma.InputJsonValue,
-          billingAddress: billingAddressSnapshot as unknown as Prisma.InputJsonValue,
+          shippingAddress:
+            shippingAddressSnapshot as unknown as Prisma.InputJsonValue,
+          billingAddress:
+            billingAddressSnapshot as unknown as Prisma.InputJsonValue,
           notes: checkoutDto.notes || null,
           items: {
             create: itemsToOrder,
@@ -458,8 +457,7 @@ export class OrdersService {
             (1000 * 60 * 60 * 24),
         )
       : null;
-    const isEligibleForReturn =
-      isDelivered && (daysSinceDelivery ?? 999) <= 14;
+    const isEligibleForReturn = isDelivered && (daysSinceDelivery ?? 999) <= 14;
 
     // Mask sensitive contact details for public response privacy
     const maskedEmail = orderEmail
@@ -468,8 +466,7 @@ export class OrdersService {
           (_, a, b) => a + '*'.repeat(b.length),
         )
       : null;
-    const rawPhone =
-      (shippingAddr.phone as string) || order.user?.phone || '';
+    const rawPhone = (shippingAddr.phone as string) || order.user?.phone || '';
     const maskedPhone = rawPhone
       ? rawPhone.slice(0, 4) + '****' + rawPhone.slice(-3)
       : null;
@@ -481,8 +478,7 @@ export class OrdersService {
       paymentMethod: order.paymentMethod,
       isCancelled,
       isReturned,
-      currentStepIndex:
-        currentIndex >= 0 ? currentIndex : isCancelled ? -1 : 0,
+      currentStepIndex: currentIndex >= 0 ? currentIndex : isCancelled ? -1 : 0,
       steps,
       estimatedDeliveryDays:
         order.shippingZone?.estimatedDeliveryDays || '1-3 Business Days',
@@ -791,7 +787,10 @@ export class OrdersService {
     const { status, notes } = updateDto;
 
     // Handle inventory restoration if status changed to CANCELLED
-    if (status === OrderStatus.CANCELLED && order.status !== OrderStatus.CANCELLED) {
+    if (
+      status === OrderStatus.CANCELLED &&
+      order.status !== OrderStatus.CANCELLED
+    ) {
       return this.prisma.$transaction(async (tx) => {
         for (const item of order.items) {
           if (item.variantId) {
@@ -859,7 +858,8 @@ export class OrdersService {
     const { courierName, trackingNumber, notes } = assignCourierDto;
 
     const newStatus =
-      order.status === OrderStatus.DELIVERED || order.status === OrderStatus.RETURNED
+      order.status === OrderStatus.DELIVERED ||
+      order.status === OrderStatus.RETURNED
         ? order.status
         : OrderStatus.SHIPPED;
 
@@ -890,7 +890,9 @@ export class OrdersService {
         items: {
           include: {
             product: { select: { id: true, title: true, slug: true } },
-            variant: { select: { id: true, sku: true, size: true, color: true } },
+            variant: {
+              select: { id: true, sku: true, size: true, color: true },
+            },
           },
         },
         shippingZone: true,
@@ -932,16 +934,21 @@ export class OrdersService {
       },
       customer: {
         id: order.userId,
-        name: order.user?.name || (shippingAddr.fullName as string) || 'Valued Customer',
+        name:
+          order.user?.name ||
+          (shippingAddr.fullName as string) ||
+          'Valued Customer',
         email: order.user?.email || (shippingAddr.email as string) || '',
         phone: order.user?.phone || (shippingAddr.phone as string) || '',
       },
       shippingAddress: shippingAddr,
       billingAddress: billingAddr,
       logistics: {
-        courierName: order.courierName || order.shippingZone?.name || 'Standard Courier',
+        courierName:
+          order.courierName || order.shippingZone?.name || 'Standard Courier',
         trackingNumber: order.trackingNumber || 'Pending Assignment',
-        estimatedDeliveryDays: order.shippingZone?.estimatedDeliveryDays || '1-3 Business Days',
+        estimatedDeliveryDays:
+          order.shippingZone?.estimatedDeliveryDays || '1-3 Business Days',
       },
       lineItems: order.items.map((item, index) => ({
         serial: index + 1,
@@ -963,8 +970,10 @@ export class OrdersService {
         currency: 'BDT (৳)',
       },
       terms: {
-        returnPolicy: 'Exchange or return permitted within 14 days of delivery with original tags intact.',
-        supportNotes: 'For queries regarding this invoice, please reach out to billing@zevon.com with your order number.',
+        returnPolicy:
+          'Exchange or return permitted within 14 days of delivery with original tags intact.',
+        supportNotes:
+          'For queries regarding this invoice, please reach out to billing@zevon.com with your order number.',
       },
     };
   }

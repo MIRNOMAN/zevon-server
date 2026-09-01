@@ -181,7 +181,9 @@ describe('ReturnsService', () => {
         orderItem: mockDeliveredOrder.items[0],
       };
 
-      (prisma.returnRequest.findUnique as jest.Mock).mockResolvedValue(mockReturn);
+      (prisma.returnRequest.findUnique as jest.Mock).mockResolvedValue(
+        mockReturn,
+      );
 
       const result = await service.trackReturn({
         returnReference: 'RET-20260901-4821',
@@ -205,7 +207,9 @@ describe('ReturnsService', () => {
         orderItem: mockDeliveredOrder.items[0],
       };
 
-      (prisma.returnRequest.findUnique as jest.Mock).mockResolvedValue(mockReturn);
+      (prisma.returnRequest.findUnique as jest.Mock).mockResolvedValue(
+        mockReturn,
+      );
 
       await expect(
         service.trackReturn({
@@ -234,13 +238,18 @@ describe('ReturnsService', () => {
     };
 
     it('receiveReturn should update status to RECEIVED and automatically increment variant stock', async () => {
-      (prisma.returnRequest.findUnique as jest.Mock).mockResolvedValue(mockReturnWithItem);
+      (prisma.returnRequest.findUnique as jest.Mock).mockResolvedValue(
+        mockReturnWithItem,
+      );
       (prisma.returnRequest.update as jest.Mock).mockResolvedValue({
         ...mockReturnWithItem,
         status: ReturnStatus.RECEIVED,
       });
 
-      const result = await service.receiveReturn('ret-123', 'Inspection passed. Items in original condition.');
+      const result = await service.receiveReturn(
+        'ret-123',
+        'Inspection passed. Items in original condition.',
+      );
 
       expect(result.status).toBe(ReturnStatus.RECEIVED);
       expect(prisma.productVariant.update).toHaveBeenCalledWith({
@@ -250,18 +259,26 @@ describe('ReturnsService', () => {
     });
 
     it('approveReturn should transition status to APPROVED', async () => {
-      (prisma.returnRequest.findUnique as jest.Mock).mockResolvedValue(mockReturnWithItem);
+      (prisma.returnRequest.findUnique as jest.Mock).mockResolvedValue(
+        mockReturnWithItem,
+      );
       (prisma.returnRequest.update as jest.Mock).mockResolvedValue({
         ...mockReturnWithItem,
         status: ReturnStatus.APPROVED,
       });
 
-      const result = await service.approveReturn('ret-123', 'Return accepted', 'TRACK-123');
+      const result = await service.approveReturn(
+        'ret-123',
+        'Return accepted',
+        'TRACK-123',
+      );
       expect(result.status).toBe(ReturnStatus.APPROVED);
     });
 
     it('rejectReturn should throw BadRequestException if rejection reason is omitted', async () => {
-      await expect(service.rejectReturn('ret-123', '')).rejects.toThrow(BadRequestException);
+      await expect(service.rejectReturn('ret-123', '')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 });

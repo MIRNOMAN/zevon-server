@@ -11,7 +11,8 @@ export class CreateCheckoutSessionDto {
   orderId!: string;
 
   @ApiPropertyOptional({
-    example: 'http://localhost:3000/order/success?session_id={CHECKOUT_SESSION_ID}',
+    example:
+      'http://localhost:3000/order/success?session_id={CHECKOUT_SESSION_ID}',
     description: 'Custom success redirect URL after payment completion',
   })
   @IsOptional()

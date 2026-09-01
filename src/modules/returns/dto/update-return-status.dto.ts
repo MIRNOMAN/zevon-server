@@ -14,7 +14,8 @@ export class UpdateReturnStatusDto {
   @ApiProperty({
     enum: ReturnStatus,
     example: ReturnStatus.APPROVED,
-    description: 'Updated return status (REQUESTED, APPROVED, REJECTED, RECEIVED, REFUNDED)',
+    description:
+      'Updated return status (REQUESTED, APPROVED, REJECTED, RECEIVED, REFUNDED)',
   })
   @IsEnum(ReturnStatus, {
     message:

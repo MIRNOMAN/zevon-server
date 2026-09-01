@@ -52,7 +52,10 @@ describe('StockAlertsService', () => {
             productVariant: mockOutOfStockVariant,
           },
         ]),
-        update: jest.fn().mockResolvedValue({ id: 'alert-1', status: StockAlertStatus.NOTIFIED }),
+        update: jest.fn().mockResolvedValue({
+          id: 'alert-1',
+          status: StockAlertStatus.NOTIFIED,
+        }),
         count: jest.fn().mockResolvedValue(1),
       },
     };

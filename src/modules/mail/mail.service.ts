@@ -47,11 +47,10 @@ export class MailService {
     const pass = this.configService.get<string>('mail.pass');
     const port = this.configService.get<number>('mail.port', 587);
     const secure = this.configService.get<boolean>('mail.secure', false);
-    this.fromEmail =
-      this.configService.get<string>(
-        'mail.from',
-        'ZEVON Store <no-reply@zevon.com>',
-      );
+    this.fromEmail = this.configService.get<string>(
+      'mail.from',
+      'ZEVON Store <no-reply@zevon.com>',
+    );
 
     if (host && user && pass) {
       this.transporter = nodemailer.createTransport({
@@ -71,7 +70,9 @@ export class MailService {
   /**
    * Sends order payment confirmation and itemized receipt to client's email.
    */
-  async sendOrderPaymentSuccessEmail(context: PaymentEmailContext): Promise<boolean> {
+  async sendOrderPaymentSuccessEmail(
+    context: PaymentEmailContext,
+  ): Promise<boolean> {
     const subject = `Order Confirmed #${context.orderNumber} - Payment Successful | ZEVON`;
     const htmlContent = this.generateReceiptHtml(context);
 
@@ -320,6 +321,208 @@ export class MailService {
       this.logger.error(
         `❌ Failed to deliver back-in-stock email to ${ctx.customerEmail}: ${errorMsg}`,
       );
+      return false;
+    }
+  }
+
+  /**
+   * Referral System: Dispatches reward notification email when a referred friend completes an order.
+   */
+  async sendReferralRewardEmail(
+    to: string,
+    ctx: {
+      referrerName: string;
+      friendName: string;
+      rewardPoints: number;
+      rewardAmount: number;
+    },
+  ): Promise<boolean> {
+    const subject = `🎉 You earned ৳${ctx.rewardAmount} in rewards! (Friend Referral)`;
+    const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 20px;">
+  <div style="max-width: 600px; margin: auto; background: #1e293b; border-radius: 12px; padding: 30px; border: 1px solid #334155;">
+    <h2 style="color: #10b981; margin-top: 0;">Referral Bonus Credited! 🎉</h2>
+    <p>Hi ${ctx.referrerName},</p>
+    <p>Great news! Your friend <strong>${ctx.friendName}</strong> just completed their first order on ZEVON.</p>
+    <div style="background: #0f172a; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+      <p style="margin: 0; font-size: 14px; color: #94a3b8;">Reward Added to Your Wallet</p>
+      <h1 style="margin: 8px 0; color: #10b981;">+${ctx.rewardPoints} Points (৳${ctx.rewardAmount})</h1>
+    </div>
+    <p>You can redeem your points anytime at checkout towards your next stylish outfit!</p>
+    <p style="font-size: 12px; color: #64748b; margin-top: 30px;">© ${new Date().getFullYear()} ZEVON Official. All rights reserved.</p>
+  </div>
+</body>
+</html>
+    `;
+
+    try {
+      if (this.transporter) {
+        await this.transporter.sendMail({
+          from: this.fromEmail,
+          to,
+          subject,
+          html,
+        });
+      } else {
+        this.logger.log(
+          `🎁 [DEV EMAIL LOG] Referral Reward to ${to}: +${ctx.rewardPoints} Points`,
+        );
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Abandoned Cart Recovery: Dispatches recovery email with dynamic promo code.
+   */
+  async sendAbandonedCartEmail(
+    to: string,
+    ctx: {
+      customerName: string;
+      items: Array<{
+        title: string;
+        size: string;
+        color: string;
+        price: number;
+        imageUrl?: string | null;
+      }>;
+      recoveryCouponCode: string;
+      discountPercent: number;
+      cartUrl?: string;
+    },
+  ): Promise<boolean> {
+    const subject = `🛒 Did you forget something? Here is ${ctx.discountPercent}% off to complete your order!`;
+    const itemsHtml = ctx.items
+      .map(
+        (i) => `
+      <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #334155;">
+        <div>
+          <strong style="color: #ffffff;">${i.title}</strong>
+          <div style="font-size: 12px; color: #94a3b8;">Size: ${i.size} | Color: ${i.color}</div>
+        </div>
+        <div style="color: #10b981; font-weight: 600;">৳${i.price.toFixed(2)}</div>
+      </div>
+    `,
+      )
+      .join('');
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 20px;">
+  <div style="max-width: 600px; margin: auto; background: #1e293b; border-radius: 12px; padding: 30px; border: 1px solid #334155;">
+    <h2 style="color: #38bdf8; margin-top: 0;">You left items in your shopping bag! 🛍️</h2>
+    <p>Hi ${ctx.customerName},</p>
+    <p>Your favorite picks are waiting for you. Complete your order today and enjoy an exclusive discount:</p>
+    
+    <div style="background: #0f172a; border: 2px dashed #38bdf8; padding: 16px; border-radius: 8px; text-align: center; margin: 20px 0;">
+      <p style="margin: 0; font-size: 12px; color: #94a3b8;">Use promo code at checkout:</p>
+      <h2 style="margin: 8px 0; color: #38bdf8; letter-spacing: 2px;">${ctx.recoveryCouponCode}</h2>
+      <p style="margin: 0; font-size: 13px; color: #a7f3d0;">Save ${ctx.discountPercent}% off your cart!</p>
+    </div>
+
+    <div style="margin: 20px 0;">
+      ${itemsHtml}
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="https://zevon.com/cart" style="background: #38bdf8; color: #0f172a; padding: 14px 28px; text-decoration: none; font-weight: bold; border-radius: 8px;">Complete My Order</a>
+    </div>
+    <p style="font-size: 12px; color: #64748b; margin-top: 30px; text-align: center;">© ${new Date().getFullYear()} ZEVON Official.</p>
+  </div>
+</body>
+</html>
+    `;
+
+    try {
+      if (this.transporter) {
+        await this.transporter.sendMail({
+          from: this.fromEmail,
+          to,
+          subject,
+          html,
+        });
+      } else {
+        this.logger.log(
+          `🛒 [DEV EMAIL LOG] Abandoned Cart Recovery to ${to}: Code ${ctx.recoveryCouponCode}`,
+        );
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Digital Gift Card: Delivers voucher code and personalized message to recipient.
+   */
+  async sendGiftCardEmail(
+    to: string,
+    ctx: {
+      recipientName?: string;
+      senderName?: string;
+      code: string;
+      balance: number;
+      customMessage?: string;
+      expiryDate?: string;
+    },
+  ): Promise<boolean> {
+    const subject = `🎁 You received a ৳${ctx.balance} ZEVON Gift Card!`;
+    const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 20px;">
+  <div style="max-width: 600px; margin: auto; background: #1e293b; border-radius: 12px; padding: 30px; border: 1px solid #334155;">
+    <div style="background: linear-gradient(135deg, #ec4899, #8b5cf6); padding: 24px; border-radius: 10px; text-align: center; color: #ffffff;">
+      <h1 style="margin: 0; font-size: 24px;">ZEVON GIFT CARD</h1>
+      <h2 style="margin: 12px 0 0; font-size: 32px;">৳${ctx.balance.toFixed(2)}</h2>
+    </div>
+
+    <div style="padding: 20px 0;">
+      <p>Hello${ctx.recipientName ? ` ${ctx.recipientName}` : ''},</p>
+      <p>${ctx.senderName ? `<strong>${ctx.senderName}</strong> sent you a digital gift card!` : 'You received a digital gift card!'}</p>
+      
+      ${
+        ctx.customMessage
+          ? `<blockquote style="background: #0f172a; padding: 14px; border-left: 4px solid #ec4899; margin: 16px 0; font-style: italic; color: #cbd5e1;">"${ctx.customMessage}"</blockquote>`
+          : ''
+      }
+
+      <div style="background: #0f172a; border: 1px solid #334155; padding: 16px; border-radius: 8px; text-align: center; margin: 24px 0;">
+        <p style="margin: 0; font-size: 13px; color: #94a3b8;">Your Gift Card Voucher Code:</p>
+        <h3 style="margin: 8px 0; color: #ec4899; letter-spacing: 2px; font-size: 20px;">${ctx.code}</h3>
+        ${ctx.expiryDate ? `<p style="margin: 0; font-size: 12px; color: #64748b;">Expires: ${ctx.expiryDate}</p>` : ''}
+      </div>
+
+      <div style="text-align: center; margin-top: 24px;">
+        <a href="https://zevon.com" style="background: #ec4899; color: #ffffff; padding: 14px 28px; text-decoration: none; font-weight: bold; border-radius: 8px;">Shop at ZEVON</a>
+      </div>
+    </div>
+    <p style="font-size: 12px; color: #64748b; text-align: center;">© ${new Date().getFullYear()} ZEVON Official. All rights reserved.</p>
+  </div>
+</body>
+</html>
+    `;
+
+    try {
+      if (this.transporter) {
+        await this.transporter.sendMail({
+          from: this.fromEmail,
+          to,
+          subject,
+          html,
+        });
+      } else {
+        this.logger.log(
+          `🎁 [DEV EMAIL LOG] Gift Card to ${to}: ${ctx.code} (৳${ctx.balance})`,
+        );
+      }
+      return true;
+    } catch {
       return false;
     }
   }

@@ -1,5 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Prisma, OrderStatus, PaymentStatus, Role, ReturnStatus } from '@prisma/client';
+import {
+  Prisma,
+  OrderStatus,
+  PaymentStatus,
+  Role,
+  ReturnStatus,
+} from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service.js';
 import { SalesReportQueryDto } from './dto/index.js';
 
@@ -97,19 +103,28 @@ export class AnalyticsService {
     const totalRevenue = Number(paidRevenueAggregate._sum.totalAmount || 0);
     const paidOrdersCount = paidRevenueAggregate._count.id;
     const averageOrderValue =
-      paidOrdersCount > 0 ? Number((totalRevenue / paidOrdersCount).toFixed(2)) : 0;
+      paidOrdersCount > 0
+        ? Number((totalRevenue / paidOrdersCount).toFixed(2))
+        : 0;
 
     // Conversion rate: Converted orders vs (Total orders + Abandoned/Active Carts)
     const totalPotentialCheckouts = totalOrdersCount + activeCartsCount;
     const conversionRate =
       totalPotentialCheckouts > 0
-        ? Number(((totalOrdersCount / totalPotentialCheckouts) * 100).toFixed(2))
+        ? Number(
+            ((totalOrdersCount / totalPotentialCheckouts) * 100).toFixed(2),
+          )
         : 0;
 
     // ── 30-Day Daily Sales Revenue Time-Series Chart Aggregation ───────────
     const dailyMap = new Map<
       string,
-      { date: string; revenue: number; orderCount: number; paidOrdersCount: number }
+      {
+        date: string;
+        revenue: number;
+        orderCount: number;
+        paidOrdersCount: number;
+      }
     >();
 
     // Pre-populate all 30 days so there are no gaps in the chart
@@ -132,7 +147,9 @@ export class AnalyticsService {
       if (entry) {
         entry.orderCount += 1;
         if (order.paymentStatus === PaymentStatus.PAID) {
-          entry.revenue = Number((entry.revenue + Number(order.totalAmount)).toFixed(2));
+          entry.revenue = Number(
+            (entry.revenue + Number(order.totalAmount)).toFixed(2),
+          );
           entry.paidOrdersCount += 1;
         }
       }
@@ -246,7 +263,8 @@ export class AnalyticsService {
       }
 
       const unitPrice =
-        Number(v.product.discountPrice ?? v.product.basePrice) + Number(v.extraPrice);
+        Number(v.product.discountPrice ?? v.product.basePrice) +
+        Number(v.extraPrice);
 
       return {
         variantId: v.id,
@@ -317,7 +335,8 @@ export class AnalyticsService {
 
     for (const v of allVariants) {
       const unitPrice =
-        Number(v.product.discountPrice ?? v.product.basePrice) + Number(v.extraPrice);
+        Number(v.product.discountPrice ?? v.product.basePrice) +
+        Number(v.extraPrice);
       const stockValuation = unitPrice * v.stock;
 
       totalUnits += v.stock;
@@ -423,7 +442,9 @@ export class AnalyticsService {
     const grossSubtotal = Number(aggregate._sum.subtotal || 0);
     const totalDiscounts = Number(aggregate._sum.discountAmount || 0);
     const totalShipping = Number(aggregate._sum.shippingCost || 0);
-    const averageOrderValue = Number((aggregate._avg.totalAmount || 0).toFixed(2));
+    const averageOrderValue = Number(
+      (aggregate._avg.totalAmount || 0).toFixed(2),
+    );
 
     return {
       summary: {

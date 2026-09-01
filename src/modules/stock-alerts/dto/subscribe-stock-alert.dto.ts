@@ -4,7 +4,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class SubscribeStockAlertDto {
   @ApiProperty({
     example: 'cm1variant_m_black_123',
-    description: 'The ID of the out-of-stock product variant (specific size/color)',
+    description:
+      'The ID of the out-of-stock product variant (specific size/color)',
   })
   @IsString()
   @IsNotEmpty({ message: 'productVariantId is required' })

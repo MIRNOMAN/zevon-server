@@ -9,9 +9,15 @@ describe('CurrencyController', () => {
 
   beforeEach(async () => {
     const serviceMock = {
-      getRates: jest.fn().mockReturnValue({ baseCurrency: 'BDT', supportedCurrencies: [] }),
-      convert: jest.fn().mockReturnValue({ convertedAmount: 21, formatted: '$21.00 USD' }),
-      detectLocation: jest.fn().mockReturnValue({ detectedCountry: 'BD', recommendedCurrency: 'BDT' }),
+      getRates: jest
+        .fn()
+        .mockReturnValue({ baseCurrency: 'BDT', supportedCurrencies: [] }),
+      convert: jest
+        .fn()
+        .mockReturnValue({ convertedAmount: 21, formatted: '$21.00 USD' }),
+      detectLocation: jest
+        .fn()
+        .mockReturnValue({ detectedCountry: 'BD', recommendedCurrency: 'BDT' }),
       updateRates: jest.fn().mockReturnValue({}),
     };
 

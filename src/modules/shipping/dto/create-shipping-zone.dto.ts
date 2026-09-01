@@ -29,7 +29,8 @@ export class CreateShippingZoneDto {
   code?: string;
 
   @ApiPropertyOptional({
-    example: 'Covers all Metropolitan Dhaka areas with express and standard options.',
+    example:
+      'Covers all Metropolitan Dhaka areas with express and standard options.',
     description: 'Internal or customer-facing description of the zone',
   })
   @IsOptional()
@@ -125,7 +126,8 @@ export class CreateShippingZoneDto {
   @ApiPropertyOptional({
     example: true,
     default: true,
-    description: 'Whether this shipping zone is actively available for checkout',
+    description:
+      'Whether this shipping zone is actively available for checkout',
   })
   @IsOptional()
   @IsBoolean()

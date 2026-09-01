@@ -33,15 +33,26 @@ describe('OrdersController', () => {
 
   beforeEach(async () => {
     const serviceMock = {
+      trackOrder: jest
+        .fn()
+        .mockResolvedValue({ orderNumber: 'ZV-20260901-1234', steps: [] }),
       checkout: jest.fn().mockResolvedValue(mockOrderResponse),
       findMyOrders: jest.fn().mockResolvedValue({ orders: [], meta: {} }),
       findMyOrderById: jest.fn().mockResolvedValue(mockOrderResponse),
-      cancelMyOrder: jest.fn().mockResolvedValue({ status: OrderStatus.CANCELLED }),
+      cancelMyOrder: jest
+        .fn()
+        .mockResolvedValue({ status: OrderStatus.CANCELLED }),
       findAll: jest.fn().mockResolvedValue({ orders: [], meta: {} }),
       findOne: jest.fn().mockResolvedValue(mockOrderResponse),
-      updateStatus: jest.fn().mockResolvedValue({ status: OrderStatus.PROCESSING }),
-      updatePaymentStatus: jest.fn().mockResolvedValue({ paymentStatus: PaymentStatus.PAID }),
-      getMetricsSummary: jest.fn().mockResolvedValue({ totalOrders: 10, totalRevenue: 50000 }),
+      updateStatus: jest
+        .fn()
+        .mockResolvedValue({ status: OrderStatus.PROCESSING }),
+      updatePaymentStatus: jest
+        .fn()
+        .mockResolvedValue({ paymentStatus: PaymentStatus.PAID }),
+      getMetricsSummary: jest
+        .fn()
+        .mockResolvedValue({ totalOrders: 10, totalRevenue: 50000 }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -63,12 +74,18 @@ describe('OrdersController', () => {
   });
 
   it('POST /orders/track should delegate to service.trackOrder', async () => {
-    const dto = { orderNumber: 'ZV-20260901-1234', emailOrPhone: 'noman@example.com' };
-    (service as any).trackOrder = jest.fn().mockResolvedValue({ orderNumber: 'ZV-20260901-1234', steps: [] });
+    const dto = {
+      orderNumber: 'ZV-20260901-1234',
+      emailOrPhone: 'noman@example.com',
+    };
+    service.trackOrder.mockResolvedValue({
+      orderNumber: 'ZV-20260901-1234',
+      steps: [],
+    } as unknown as Awaited<ReturnType<OrdersService['trackOrder']>>);
 
     const result = await controller.trackOrder(dto);
     expect(service.trackOrder).toHaveBeenCalledWith(dto);
-    expect(result.orderNumber).toBe('ZV-20260901-1234');
+    expect(result).toEqual({ orderNumber: 'ZV-20260901-1234', steps: [] });
   });
 
   it('POST /orders/checkout should delegate to service.checkout', async () => {

@@ -4,7 +4,8 @@ import { ApiProperty } from '@nestjs/swagger';
 export class TrackReturnDto {
   @ApiProperty({
     example: 'RET-20260901-4821',
-    description: 'Unique return tracking reference generated during request creation',
+    description:
+      'Unique return tracking reference generated during request creation',
   })
   @IsString()
   @IsNotEmpty({ message: 'returnReference is required' })

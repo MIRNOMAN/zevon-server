@@ -27,7 +27,8 @@ export class AnalyticsController {
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Returns dashboard KPI metrics and last 30-day daily sales array for chart rendering',
+    description:
+      'Returns dashboard KPI metrics and last 30-day daily sales array for chart rendering',
   })
   getDashboardMetrics() {
     return this.analyticsService.getDashboardMetrics();

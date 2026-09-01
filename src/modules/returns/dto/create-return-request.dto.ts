@@ -40,7 +40,8 @@ export class CreateReturnRequestDto {
     enum: ReturnResolution,
     example: ReturnResolution.REFUND,
     default: ReturnResolution.REFUND,
-    description: 'Resolution choice: REFUND (money back) or EXCHANGE (replacement item)',
+    description:
+      'Resolution choice: REFUND (money back) or EXCHANGE (replacement item)',
   })
   @IsOptional()
   @IsEnum(ReturnResolution, {

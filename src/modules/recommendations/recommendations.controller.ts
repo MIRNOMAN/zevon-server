@@ -8,12 +8,7 @@ import {
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiQuery,
-  ApiResponse,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { RecommendationsService } from './recommendations.service.js';
 import { TrackViewDto } from './dto/index.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
@@ -34,10 +29,7 @@ export class RecommendationsController {
   @ApiOperation({
     summary: 'Record customer/guest browsing history view event',
   })
-  trackView(
-    @Body() dto: TrackViewDto,
-    @CurrentUser('userId') userId?: string,
-  ) {
+  trackView(@Body() dto: TrackViewDto, @CurrentUser('userId') userId?: string) {
     return this.recommendationsService.trackView(dto, userId);
   }
 
@@ -67,7 +59,9 @@ export class RecommendationsController {
   @Get('you-may-also-like/:productId')
   @Public()
   @HttpCode(HttpStatus.OK)
-  @ResponseMessage('Personalized cross-sell recommendations retrieved successfully')
+  @ResponseMessage(
+    'Personalized cross-sell recommendations retrieved successfully',
+  )
   @ApiOperation({
     summary:
       'You May Also Like: Smart cross-sell product recommendations based on category, tags, and price similarity',
@@ -78,7 +72,10 @@ export class RecommendationsController {
     @Query('limit') limit?: number,
   ) {
     const numericLimit = limit ? Number(limit) : 8;
-    return this.recommendationsService.getYouMayAlsoLike(productId, numericLimit);
+    return this.recommendationsService.getYouMayAlsoLike(
+      productId,
+      numericLimit,
+    );
   }
 
   @Get('trending')
@@ -86,7 +83,8 @@ export class RecommendationsController {
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Trending recommendations retrieved successfully')
   @ApiOperation({
-    summary: 'Trending Recommendations Carousel: Top viewed and bestselling products',
+    summary:
+      'Trending Recommendations Carousel: Top viewed and bestselling products',
   })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 8 })
   getTrending(@Query('limit') limit?: number) {

@@ -95,6 +95,34 @@ enum StockAlertStatus {
   CANCELLED
 }
 
+enum CustomerTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum PointTransactionType {
+  EARNED
+  REDEEMED
+  REFERRAL_BONUS
+  WELCOME_BONUS
+  REFUND_REVERSAL
+  MANUAL_ADJUSTMENT
+}
+
+enum GiftCardStatus {
+  ACTIVE
+  REDEEMED
+  EXPIRED
+  DISABLED
+}
+
+enum ReferralStatus {
+  PENDING
+  REWARDED
+}
+
 // ──────────────────────────────────────────────────────────────
 // 1. User & Authentication
 // ──────────────────────────────────────────────────────────────
@@ -109,21 +137,31 @@ model User {
   isActive           Boolean         @default(true) @map("is_active")
   avatarUrl          String?         @map("avatar_url")
   hashedRefreshToken String?         @map("hashed_refresh_token")
+  referralCode       String?         @unique @map("referral_code")
+  referredById       String?         @map("referred_by_id")
+  referredBy         User?           @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referees           User[]          @relation("UserReferrals")
   createdAt          DateTime        @default(now()) @map("created_at")
   updatedAt          DateTime        @updatedAt @map("updated_at")
 
-  addresses          Address[]
-  orders             Order[]
-  reviews            Review[]
-  wishlist           Wishlist[]
-  cart               Cart?
-  returnRequests     ReturnRequest[]
-  supportTickets     SupportTicket[]
-  stockAlerts        StockAlert[]
-  productViews       ProductView[]
+  addresses            Address[]
+  orders               Order[]
+  reviews              Review[]
+  wishlist             Wishlist[]
+  cart                 Cart?
+  returnRequests       ReturnRequest[]
+  supportTickets       SupportTicket[]
+  stockAlerts          StockAlert[]
+  productViews         ProductView[]
+  loyaltyAccount       LoyaltyAccount?
+  sentGiftCards        GiftCard[]           @relation("SentGiftCards")
+  giftCardRedemptions  GiftCardRedemption[]
+  referralRecords      Referral[]           @relation("Referrer")
+  refereeRecord        Referral?            @relation("Referee")
 
   @@index([role])
   @@index([email])
+  @@index([referralCode])
   @@map("users")
 }
 
@@ -307,12 +345,14 @@ model Wishlist {
 // ──────────────────────────────────────────────────────────────
 
 model Cart {
-  id        String     @id @default(cuid())
-  userId    String     @unique @map("user_id")
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     CartItem[]
-  createdAt DateTime   @default(now()) @map("created_at")
-  updatedAt DateTime   @updatedAt @map("updated_at")
+  id                    String     @id @default(cuid())
+  userId                String     @unique @map("user_id")
+  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  abandonedEmailSentAt  DateTime?  @map("abandoned_email_sent_at")
+  abandonedEmailCount   Int        @default(0) @map("abandoned_email_count")
+  items                 CartItem[]
+  createdAt             DateTime   @default(now()) @map("created_at")
+  updatedAt             DateTime   @updatedAt @map("updated_at")
 
   @@map("carts")
 }
@@ -711,5 +751,106 @@ model ProductView {
   @@index([sessionId])
   @@index([productId])
   @@map("product_views")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 22. Loyalty Account & Points Ledger
+// ──────────────────────────────────────────────────────────────
+
+model LoyaltyAccount {
+  id                   String             @id @default(cuid())
+  userId               String             @unique @map("user_id")
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pointsBalance        Int                @default(0) @map("points_balance")
+  lifetimePointsEarned Int                @default(0) @map("lifetime_points_earned")
+  lifetimeSpent        Decimal            @default(0.00) @map("lifetime_spent") @db.Decimal(10, 2)
+  tier                 CustomerTier       @default(BRONZE)
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  transactions         PointTransaction[]
+
+  @@index([userId])
+  @@index([tier])
+  @@map("loyalty_accounts")
+}
+
+model PointTransaction {
+  id               String               @id @default(cuid())
+  loyaltyAccountId String               @map("loyalty_account_id")
+  loyaltyAccount   LoyaltyAccount       @relation(fields: [loyaltyAccountId], references: [id], onDelete: Cascade)
+  amount           Int
+  type             PointTransactionType
+  description      String
+  referenceId      String?              @map("reference_id")
+  createdAt        DateTime             @default(now()) @map("created_at")
+
+  @@index([loyaltyAccountId])
+  @@index([type])
+  @@map("point_transactions")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 23. Referral Record
+// ──────────────────────────────────────────────────────────────
+
+model Referral {
+  id           String         @id @default(cuid())
+  referrerId   String         @map("referrer_id")
+  referrer     User           @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  refereeId    String         @unique @map("referee_id")
+  referee      User           @relation("Referee", fields: [refereeId], references: [id], onDelete: Cascade)
+  status       ReferralStatus @default(PENDING)
+  rewardAmount Decimal        @default(500.00) @map("reward_amount") @db.Decimal(10, 2)
+  rewardedAt   DateTime?      @map("rewarded_at")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  @@index([referrerId])
+  @@index([refereeId])
+  @@map("referrals")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 24. Digital Gift Card & Redemptions
+// ──────────────────────────────────────────────────────────────
+
+model GiftCard {
+  id             String               @id @default(cuid())
+  code           String               @unique
+  initialBalance Decimal              @map("initial_balance") @db.Decimal(10, 2)
+  currentBalance Decimal              @map("current_balance") @db.Decimal(10, 2)
+  senderId       String?              @map("sender_id")
+  sender         User?                @relation("SentGiftCards", fields: [senderId], references: [id], onDelete: SetNull)
+  recipientEmail String               @map("recipient_email")
+  recipientName  String?              @map("recipient_name")
+  customMessage  String?              @map("custom_message") @db.Text
+  status         GiftCardStatus       @default(ACTIVE)
+  expiresAt      DateTime?            @map("expires_at")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+
+  redemptions    GiftCardRedemption[]
+
+  @@index([code])
+  @@index([recipientEmail])
+  @@index([status])
+  @@map("gift_cards")
+}
+
+model GiftCardRedemption {
+  id             String   @id @default(cuid())
+  giftCardId     String   @map("gift_card_id")
+  giftCard       GiftCard @relation(fields: [giftCardId], references: [id], onDelete: Cascade)
+  userId         String   @map("user_id")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId        String?  @map("order_id")
+  amountDeducted Decimal  @map("amount_deducted") @db.Decimal(10, 2)
+  balanceAfter   Decimal  @map("balance_after") @db.Decimal(10, 2)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([giftCardId])
+  @@index([userId])
+  @@map("gift_card_redemptions")
 }
 

@@ -20,7 +20,14 @@ describe('RecommendationsService', () => {
     category: { id: 'cat-1', name: 'T-Shirts', slug: 't-shirts' },
     images: [{ url: 'https://cdn.zevon.com/tee.jpg' }],
     variants: [
-      { id: 'v1', size: 'M', color: 'Black', stock: 10, extraPrice: new Decimal(0), sku: 'TEE-M' },
+      {
+        id: 'v1',
+        size: 'M',
+        color: 'Black',
+        stock: 10,
+        extraPrice: new Decimal(0),
+        sku: 'TEE-M',
+      },
     ],
   };
 
@@ -46,7 +53,9 @@ describe('RecommendationsService', () => {
         findMany: jest.fn().mockResolvedValue([mockSimilarProduct]),
       },
       productView: {
-        create: jest.fn().mockResolvedValue({ id: 'view-1', viewedAt: new Date() }),
+        create: jest
+          .fn()
+          .mockResolvedValue({ id: 'view-1', viewedAt: new Date() }),
         findMany: jest.fn().mockResolvedValue([
           {
             id: 'view-1',
@@ -89,7 +98,10 @@ describe('RecommendationsService', () => {
 
   describe('getRecentlyViewed', () => {
     it('should retrieve deduplicated recently viewed products list', async () => {
-      const res = await service.getRecentlyViewed({ userId: 'user-1', limit: 5 });
+      const res = await service.getRecentlyViewed({
+        userId: 'user-1',
+        limit: 5,
+      });
       expect(res.total).toBe(1);
       expect(res.items[0].title).toBe('Oversized Streetwear Tee');
       expect(res.items[0].inStock).toBe(true);

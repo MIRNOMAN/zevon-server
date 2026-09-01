@@ -5,7 +5,12 @@ import { ShippingService } from '../shipping/shipping.service.js';
 import { CouponsService } from '../coupons/coupons.service.js';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/library';
-import { OrderStatus, PaymentMethod, PaymentStatus, DiscountType } from '@prisma/client';
+import {
+  OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
+  DiscountType,
+} from '@prisma/client';
 
 describe('OrdersService', () => {
   let service: OrdersService;
@@ -340,9 +345,16 @@ describe('OrdersService', () => {
           email: 'noman@example.com',
           city: 'Dhaka',
         },
-        user: { name: 'Mir Noman', email: 'noman@example.com', phone: '01712345678' },
+        user: {
+          name: 'Mir Noman',
+          email: 'noman@example.com',
+          phone: '01712345678',
+        },
         items: [],
-        shippingZone: { name: 'Inside Dhaka City', estimatedDeliveryDays: '1-2 Days' },
+        shippingZone: {
+          name: 'Inside Dhaka City',
+          estimatedDeliveryDays: '1-2 Days',
+        },
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -416,7 +428,11 @@ describe('OrdersService', () => {
         shippingCost: new Decimal(60),
         totalAmount: new Decimal(1860),
         shippingAddress: { fullName: 'Mir Noman', city: 'Dhaka' },
-        user: { name: 'Mir Noman', email: 'noman@example.com', phone: '01712345678' },
+        user: {
+          name: 'Mir Noman',
+          email: 'noman@example.com',
+          phone: '01712345678',
+        },
         items: [
           {
             id: 'item-1',

@@ -9,6 +9,5 @@ export default registerAs('stripe', () => ({
     process.env.STRIPE_SUCCESS_URL ||
     'http://localhost:3000/order/success?session_id={CHECKOUT_SESSION_ID}',
   cancelUrl:
-    process.env.STRIPE_CANCEL_URL ||
-    'http://localhost:3000/order/cancel',
+    process.env.STRIPE_CANCEL_URL || 'http://localhost:3000/order/cancel',
 }));

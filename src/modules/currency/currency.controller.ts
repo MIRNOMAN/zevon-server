@@ -33,11 +33,13 @@ export class CurrencyController {
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Exchange rates retrieved successfully')
   @ApiOperation({
-    summary: 'Get active currency exchange rates table (Base: BDT -> USD, EUR, GBP)',
+    summary:
+      'Get active currency exchange rates table (Base: BDT -> USD, EUR, GBP)',
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Returns supported currencies with exchange rates, symbols, and formatting info',
+    description:
+      'Returns supported currencies with exchange rates, symbols, and formatting info',
   })
   getRates() {
     return this.currencyService.getRates();
@@ -48,7 +50,8 @@ export class CurrencyController {
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Currency converted successfully')
   @ApiOperation({
-    summary: 'Real-time Currency Conversion: Convert any amount between BDT, USD, EUR, GBP',
+    summary:
+      'Real-time Currency Conversion: Convert any amount between BDT, USD, EUR, GBP',
   })
   @ApiQuery({ name: 'amount', required: true, type: Number, example: 2500 })
   @ApiQuery({ name: 'from', required: false, type: String, example: 'BDT' })
@@ -66,8 +69,12 @@ export class CurrencyController {
       'Auto-detect visitor country & recommended currency from IP headers (Cloudflare, X-Forwarded-For)',
   })
   detectLocation(@Req() req: Request) {
-    const headers = req.headers as Record<string, string | string[] | undefined>;
-    const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress;
+    const headers = req.headers as Record<
+      string,
+      string | string[] | undefined
+    >;
+    const clientIp =
+      (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress;
     return this.currencyService.detectLocation(headers, clientIp);
   }
 
