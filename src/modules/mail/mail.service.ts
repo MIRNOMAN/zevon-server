@@ -33,6 +33,7 @@ export interface PaymentEmailContext {
     totalPrice: number;
   }>;
   createdAt: Date | string;
+  pdfInvoiceBuffer?: Buffer;
 }
 
 @Injectable()
@@ -78,18 +79,29 @@ export class MailService {
 
     try {
       if (this.transporter) {
+        const attachments = context.pdfInvoiceBuffer
+          ? [
+              {
+                filename: `invoice-${context.orderNumber}.pdf`,
+                content: context.pdfInvoiceBuffer,
+                contentType: 'application/pdf',
+              },
+            ]
+          : undefined;
+
         await this.transporter.sendMail({
           from: this.fromEmail,
           to: context.customerEmail,
           subject,
           html: htmlContent,
+          attachments,
         });
         this.logger.log(
           `✅ Order payment confirmation email sent to ${context.customerEmail} for order #${context.orderNumber}`,
         );
       } else {
         this.logger.log(
-          `📨 [DEV/FALLBACK EMAIL] To: ${context.customerEmail} | Subject: ${subject} | Total Paid: ৳${context.totalAmount}`,
+          `📨 [DEV/FALLBACK EMAIL] To: ${context.customerEmail} | Subject: ${subject} | Total Paid: ৳${context.totalAmount}${context.pdfInvoiceBuffer ? ' | (PDF Invoice Attached)' : ''}`,
         );
       }
       return true;

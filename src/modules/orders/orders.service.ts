@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   Prisma,
@@ -12,6 +13,14 @@ import {
 import { PrismaService } from '../../database/prisma.service.js';
 import { ShippingService } from '../shipping/shipping.service.js';
 import { CouponsService } from '../coupons/coupons.service.js';
+import {
+  PdfInvoiceService,
+  InvoiceData,
+} from './services/pdf-invoice.service.js';
+import {
+  ShippingLabelService,
+  ShippingLabelData,
+} from './services/shipping-label.service.js';
 import {
   CheckoutDto,
   UpdateOrderStatusDto,
@@ -28,6 +37,8 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly shippingService: ShippingService,
     private readonly couponsService: CouponsService,
+    private readonly pdfInvoiceService: PdfInvoiceService,
+    private readonly shippingLabelService: ShippingLabelService,
   ) {}
 
   // ── Customer: Atomic Checkout & Order Placement Engine ─────────────────
@@ -463,7 +474,7 @@ export class OrdersService {
     const maskedEmail = orderEmail
       ? orderEmail.replace(
           /(.{2})(.*)(?=@)/,
-          (_, a, b) => a + '*'.repeat(b.length),
+          (_: string, a: string, b: string) => a + '*'.repeat(b.length),
         )
       : null;
     const rawPhone = (shippingAddr.phone as string) || order.user?.phone || '';
@@ -975,6 +986,351 @@ export class OrdersService {
         supportNotes:
           'For queries regarding this invoice, please reach out to billing@zevon.com with your order number.',
       },
+    };
+  }
+
+  /**
+   * Generates a downloadable PDF Invoice stream buffer.
+   */
+  async generateInvoicePdf(
+    id: string,
+    requestingUserId?: string,
+    isAdmin = false,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        user: { select: { id: true, name: true, email: true, phone: true } },
+        items: {
+          include: {
+            product: { select: { id: true, title: true, slug: true } },
+            variant: {
+              select: { id: true, sku: true, size: true, color: true },
+            },
+          },
+        },
+        shippingZone: true,
+        coupon: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID "${id}" was not found`);
+    }
+
+    if (!isAdmin && requestingUserId && order.userId !== requestingUserId) {
+      throw new ForbiddenException(
+        'You do not have permission to access this order invoice',
+      );
+    }
+
+    const shippingAddr =
+      (order.shippingAddress as Record<string, unknown>) || {};
+    const billingAddr =
+      (order.billingAddress as Record<string, unknown>) || shippingAddr;
+
+    const invoiceNumber = `INV-${order.orderNumber.replace('ZV-', '')}`;
+
+    const invoiceData: InvoiceData = {
+      invoiceNumber,
+      orderNumber: order.orderNumber,
+      orderDate: order.createdAt,
+      paymentStatus: order.paymentStatus,
+      paymentMethod: order.paymentMethod,
+      customer: {
+        name:
+          order.user?.name ||
+          (typeof shippingAddr.fullName === 'string'
+            ? shippingAddr.fullName
+            : 'Valued Customer'),
+        email:
+          order.user?.email ||
+          (typeof shippingAddr.email === 'string' ? shippingAddr.email : ''),
+        phone:
+          order.user?.phone ||
+          (typeof shippingAddr.phone === 'string' ? shippingAddr.phone : ''),
+      },
+      shippingAddress: {
+        fullName:
+          typeof shippingAddr.fullName === 'string'
+            ? shippingAddr.fullName
+            : undefined,
+        phone:
+          typeof shippingAddr.phone === 'string'
+            ? shippingAddr.phone
+            : undefined,
+        email:
+          typeof shippingAddr.email === 'string'
+            ? shippingAddr.email
+            : undefined,
+        addressLine1:
+          typeof shippingAddr.addressLine1 === 'string'
+            ? shippingAddr.addressLine1
+            : undefined,
+        addressLine2:
+          typeof shippingAddr.addressLine2 === 'string'
+            ? shippingAddr.addressLine2
+            : undefined,
+        city:
+          typeof shippingAddr.city === 'string' ? shippingAddr.city : undefined,
+        state:
+          typeof shippingAddr.state === 'string'
+            ? shippingAddr.state
+            : undefined,
+        postalCode:
+          typeof shippingAddr.postalCode === 'string'
+            ? shippingAddr.postalCode
+            : undefined,
+        country:
+          typeof shippingAddr.country === 'string'
+            ? shippingAddr.country
+            : undefined,
+      },
+      billingAddress: {
+        fullName:
+          typeof billingAddr.fullName === 'string'
+            ? billingAddr.fullName
+            : undefined,
+        phone:
+          typeof billingAddr.phone === 'string' ? billingAddr.phone : undefined,
+        email:
+          typeof billingAddr.email === 'string' ? billingAddr.email : undefined,
+        addressLine1:
+          typeof billingAddr.addressLine1 === 'string'
+            ? billingAddr.addressLine1
+            : undefined,
+        addressLine2:
+          typeof billingAddr.addressLine2 === 'string'
+            ? billingAddr.addressLine2
+            : undefined,
+        city:
+          typeof billingAddr.city === 'string' ? billingAddr.city : undefined,
+        state:
+          typeof billingAddr.state === 'string' ? billingAddr.state : undefined,
+        postalCode:
+          typeof billingAddr.postalCode === 'string'
+            ? billingAddr.postalCode
+            : undefined,
+        country:
+          typeof billingAddr.country === 'string'
+            ? billingAddr.country
+            : undefined,
+      },
+      items: order.items.map((item, index) => ({
+        serial: index + 1,
+        productTitle: item.productTitle,
+        sku: item.sku || item.variant?.sku || 'N/A',
+        color: item.color || item.variant?.color || 'Standard',
+        size: item.size || item.variant?.size || 'Standard',
+        unitPrice: Number(item.unitPrice),
+        quantity: item.quantity,
+        lineTotal: Number(item.totalPrice),
+      })),
+      financials: {
+        subtotal: Number(order.subtotal),
+        discountAmount: Number(order.discountAmount),
+        couponCode: order.coupon?.code || null,
+        shippingCost: Number(order.shippingCost),
+        totalAmount: Number(order.totalAmount),
+        currency: 'BDT (৳)',
+      },
+      courierName: order.courierName || order.shippingZone?.name || null,
+      trackingNumber: order.trackingNumber || null,
+    };
+
+    const buffer = await this.pdfInvoiceService.generateInvoicePdf(invoiceData);
+
+    return {
+      buffer,
+      filename: `invoice-${order.orderNumber}.pdf`,
+    };
+  }
+
+  /**
+   * Generates a 4x6" printable shipping label PDF with Code128 barcodes.
+   */
+  async generateShippingLabelPdf(
+    id: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        user: { select: { id: true, name: true, email: true, phone: true } },
+        items: true,
+        shippingZone: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID "${id}" was not found`);
+    }
+
+    const shippingAddr =
+      (order.shippingAddress as Record<string, unknown>) || {};
+
+    const isCOD =
+      order.paymentMethod === 'COD' ||
+      order.paymentStatus !== PaymentStatus.PAID;
+    const codAmount = isCOD ? Number(order.totalAmount) : 0;
+    const totalItemsCount = order.items.reduce(
+      (sum, item) => sum + item.quantity,
+      0,
+    );
+
+    const labelData: ShippingLabelData = {
+      orderNumber: order.orderNumber,
+      trackingNumber: order.trackingNumber || order.orderNumber,
+      courierName:
+        order.courierName || order.shippingZone?.name || 'Standard Express',
+      shippingZoneName: order.shippingZone?.name || 'Standard Delivery',
+      recipient: {
+        fullName:
+          typeof shippingAddr.fullName === 'string'
+            ? shippingAddr.fullName
+            : order.user?.name || 'Customer',
+        phone:
+          typeof shippingAddr.phone === 'string'
+            ? shippingAddr.phone
+            : order.user?.phone || 'N/A',
+        email:
+          typeof shippingAddr.email === 'string'
+            ? shippingAddr.email
+            : order.user?.email || undefined,
+        addressLine1:
+          typeof shippingAddr.addressLine1 === 'string'
+            ? shippingAddr.addressLine1
+            : 'Delivery Address',
+        addressLine2:
+          typeof shippingAddr.addressLine2 === 'string'
+            ? shippingAddr.addressLine2
+            : undefined,
+        city:
+          typeof shippingAddr.city === 'string' ? shippingAddr.city : 'Dhaka',
+        state:
+          typeof shippingAddr.state === 'string'
+            ? shippingAddr.state
+            : undefined,
+        postalCode:
+          typeof shippingAddr.postalCode === 'string'
+            ? shippingAddr.postalCode
+            : undefined,
+      },
+      sender: {
+        companyName: 'ZEVON Lifestyle Limited',
+        hubName: 'Banani Central Hub',
+        address: 'House 42, Road 11, Banani',
+        city: 'Dhaka-1213',
+        phone: '+880 9612-000000',
+      },
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentStatus,
+      codAmount,
+      totalItemsCount,
+      createdAt: order.createdAt,
+      notes: order.notes,
+    };
+
+    const buffer =
+      await this.shippingLabelService.generateShippingLabelPdf(labelData);
+
+    return {
+      buffer,
+      filename: `shipping-label-${order.orderNumber}.pdf`,
+    };
+  }
+
+  /**
+   * Generates a consolidated multi-page 4x6" PDF containing shipping labels for multiple orders.
+   */
+  async generateBulkShippingLabelsPdf(
+    orderIds: string[],
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const orders = await this.prisma.order.findMany({
+      where: { id: { in: orderIds } },
+      include: {
+        user: { select: { id: true, name: true, email: true, phone: true } },
+        items: true,
+        shippingZone: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (orders.length === 0) {
+      throw new NotFoundException('No matching orders found for provided IDs');
+    }
+
+    const labelsData: ShippingLabelData[] = orders.map((order) => {
+      const shippingAddr =
+        (order.shippingAddress as Record<string, unknown>) || {};
+      const isCOD =
+        order.paymentMethod === 'COD' ||
+        order.paymentStatus !== PaymentStatus.PAID;
+      const codAmount = isCOD ? Number(order.totalAmount) : 0;
+      const totalItemsCount = order.items.reduce(
+        (sum, item) => sum + item.quantity,
+        0,
+      );
+
+      return {
+        orderNumber: order.orderNumber,
+        trackingNumber: order.trackingNumber || order.orderNumber,
+        courierName:
+          order.courierName || order.shippingZone?.name || 'Standard Express',
+        shippingZoneName: order.shippingZone?.name || 'Standard Delivery',
+        recipient: {
+          fullName:
+            typeof shippingAddr.fullName === 'string'
+              ? shippingAddr.fullName
+              : order.user?.name || 'Customer',
+          phone:
+            typeof shippingAddr.phone === 'string'
+              ? shippingAddr.phone
+              : order.user?.phone || 'N/A',
+          email:
+            typeof shippingAddr.email === 'string'
+              ? shippingAddr.email
+              : order.user?.email || undefined,
+          addressLine1:
+            typeof shippingAddr.addressLine1 === 'string'
+              ? shippingAddr.addressLine1
+              : 'Delivery Address',
+          addressLine2:
+            typeof shippingAddr.addressLine2 === 'string'
+              ? shippingAddr.addressLine2
+              : undefined,
+          city:
+            typeof shippingAddr.city === 'string' ? shippingAddr.city : 'Dhaka',
+          state:
+            typeof shippingAddr.state === 'string'
+              ? shippingAddr.state
+              : undefined,
+          postalCode:
+            typeof shippingAddr.postalCode === 'string'
+              ? shippingAddr.postalCode
+              : undefined,
+        },
+        sender: {
+          companyName: 'ZEVON Lifestyle Limited',
+          hubName: 'Banani Central Hub',
+          address: 'House 42, Road 11, Banani',
+          city: 'Dhaka-1213',
+          phone: '+880 9612-000000',
+        },
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus,
+        codAmount,
+        totalItemsCount,
+        createdAt: order.createdAt,
+        notes: order.notes,
+      };
+    });
+
+    const buffer =
+      await this.shippingLabelService.generateBulkShippingLabelsPdf(labelsData);
+
+    return {
+      buffer,
+      filename: `bulk-shipping-labels-${Date.now()}.pdf`,
     };
   }
 

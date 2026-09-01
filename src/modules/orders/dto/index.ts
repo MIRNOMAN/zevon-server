@@ -4,3 +4,4 @@ export * from './update-order-status.dto.js';
 export * from './order-query.dto.js';
 export * from './track-order.dto.js';
 export * from './assign-courier.dto.js';
+export * from './bulk-shipping-label.dto.js';

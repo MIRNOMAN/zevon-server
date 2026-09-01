@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Response } from 'express';
 import { OrdersController } from './orders.controller.js';
 import { OrdersService } from './orders.service.js';
 import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
@@ -47,12 +48,24 @@ describe('OrdersController', () => {
       updateStatus: jest
         .fn()
         .mockResolvedValue({ status: OrderStatus.PROCESSING }),
-      updatePaymentStatus: jest
-        .fn()
-        .mockResolvedValue({ paymentStatus: PaymentStatus.PAID }),
       getMetricsSummary: jest
         .fn()
         .mockResolvedValue({ totalOrders: 10, totalRevenue: 50000 }),
+      generateInvoice: jest
+        .fn()
+        .mockResolvedValue({ invoiceNumber: 'INV-123' }),
+      generateInvoicePdf: jest.fn().mockResolvedValue({
+        buffer: Buffer.from('%PDF-1.4 test invoice'),
+        filename: 'invoice-ZV-1234.pdf',
+      }),
+      generateShippingLabelPdf: jest.fn().mockResolvedValue({
+        buffer: Buffer.from('%PDF-1.4 test label'),
+        filename: 'shipping-label-ZV-1234.pdf',
+      }),
+      generateBulkShippingLabelsPdf: jest.fn().mockResolvedValue({
+        buffer: Buffer.from('%PDF-1.4 bulk labels'),
+        filename: 'bulk-shipping-labels-12345.pdf',
+      }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -114,5 +127,73 @@ describe('OrdersController', () => {
   it('GET /orders/metrics/summary should delegate to service.getMetricsSummary', async () => {
     await controller.getMetricsSummary();
     expect(service.getMetricsSummary).toHaveBeenCalled();
+  });
+
+  it('GET /orders/:id/invoice/pdf should stream PDF with appropriate headers', async () => {
+    const mockRes = {
+      set: jest.fn(),
+      end: jest.fn(),
+    } as unknown as Response;
+
+    await controller.downloadInvoicePdf(
+      'order-1',
+      'user-1',
+      'CUSTOMER',
+      mockRes,
+    );
+
+    expect(service.generateInvoicePdf).toHaveBeenCalledWith(
+      'order-1',
+      'user-1',
+      false,
+    );
+    expect(mockRes.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'inline; filename="invoice-ZV-1234.pdf"',
+      }),
+    );
+    expect(mockRes.end).toHaveBeenCalled();
+  });
+
+  it('GET /orders/:id/shipping-label/pdf should stream 4x6" label PDF', async () => {
+    const mockRes = {
+      set: jest.fn(),
+      end: jest.fn(),
+    } as unknown as Response;
+
+    await controller.downloadShippingLabelPdf('order-1', mockRes);
+
+    expect(service.generateShippingLabelPdf).toHaveBeenCalledWith('order-1');
+    expect(mockRes.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'inline; filename="shipping-label-ZV-1234.pdf"',
+      }),
+    );
+    expect(mockRes.end).toHaveBeenCalled();
+  });
+
+  it('POST /orders/shipping-labels/bulk-pdf should stream multi-page bulk PDF', async () => {
+    const mockRes = {
+      set: jest.fn(),
+      end: jest.fn(),
+    } as unknown as Response;
+
+    await controller.downloadBulkShippingLabelsPdf(
+      { orderIds: ['order-1', 'order-2'] },
+      mockRes,
+    );
+
+    expect(service.generateBulkShippingLabelsPdf).toHaveBeenCalledWith([
+      'order-1',
+      'order-2',
+    ]);
+    expect(mockRes.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        'Content-Type': 'application/pdf',
+      }),
+    );
+    expect(mockRes.end).toHaveBeenCalled();
   });
 });

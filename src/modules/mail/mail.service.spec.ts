@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 import { MailService } from './mail.service.js';
 import { ConfigService } from '@nestjs/config';
@@ -60,6 +61,32 @@ describe('MailService', () => {
         },
       ],
       createdAt: new Date(),
+    };
+
+    const result = await service.sendOrderPaymentSuccessEmail(context);
+    expect(result).toBe(true);
+    expect(configService.get).toHaveBeenCalled();
+  });
+
+  it('should accept and attach pdfInvoiceBuffer when sending receipt email', async () => {
+    const context = {
+      orderNumber: 'ZV-20260901-1234',
+      customerName: 'Mir Noman',
+      customerEmail: 'noman@example.com',
+      paymentMethod: 'COD',
+      subtotal: 2000,
+      discountAmount: 0,
+      shippingCost: 60,
+      totalAmount: 2060,
+      shippingAddress: {
+        fullName: 'Mir Noman',
+        phone: '01712345678',
+        addressLine1: 'House 12, Road 5',
+        city: 'Dhaka',
+      },
+      items: [],
+      createdAt: new Date(),
+      pdfInvoiceBuffer: Buffer.from('%PDF-1.4 test invoice buffer'),
     };
 
     const result = await service.sendOrderPaymentSuccessEmail(context);

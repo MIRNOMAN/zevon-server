@@ -1,9 +1,20 @@
+/* eslint-disable @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrdersService } from './orders.service.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import { ShippingService } from '../shipping/shipping.service.js';
 import { CouponsService } from '../coupons/coupons.service.js';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { PdfInvoiceService } from './services/pdf-invoice.service.js';
+import { ShippingLabelService } from './services/shipping-label.service.js';
+import {
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/library';
 import {
   OrderStatus,
@@ -17,6 +28,8 @@ describe('OrdersService', () => {
   let prisma: jest.Mocked<PrismaService>;
   let shippingService: jest.Mocked<ShippingService>;
   let couponsService: jest.Mocked<CouponsService>;
+  let pdfInvoiceService: jest.Mocked<PdfInvoiceService>;
+  let shippingLabelService: jest.Mocked<ShippingLabelService>;
 
   const mockCart = {
     id: 'cart-1',
@@ -150,12 +163,29 @@ describe('OrdersService', () => {
       validateCoupon: jest.fn(),
     };
 
+    const pdfInvoiceMock = {
+      generateInvoicePdf: jest
+        .fn()
+        .mockResolvedValue(Buffer.from('%PDF-1.4 invoice mock')),
+    };
+
+    const shippingLabelMock = {
+      generateShippingLabelPdf: jest
+        .fn()
+        .mockResolvedValue(Buffer.from('%PDF-1.4 single label mock')),
+      generateBulkShippingLabelsPdf: jest
+        .fn()
+        .mockResolvedValue(Buffer.from('%PDF-1.4 bulk labels mock')),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrdersService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: ShippingService, useValue: shippingMock },
         { provide: CouponsService, useValue: couponsMock },
+        { provide: PdfInvoiceService, useValue: pdfInvoiceMock },
+        { provide: ShippingLabelService, useValue: shippingLabelMock },
       ],
     }).compile();
 
@@ -163,6 +193,8 @@ describe('OrdersService', () => {
     prisma = module.get(PrismaService);
     shippingService = module.get(ShippingService);
     couponsService = module.get(CouponsService);
+    pdfInvoiceService = module.get(PdfInvoiceService);
+    shippingLabelService = module.get(ShippingLabelService);
   });
 
   it('should be defined', () => {
@@ -458,6 +490,141 @@ describe('OrdersService', () => {
       expect(invoice.company.name).toBe('ZEVON Official Ltd.');
       expect(invoice.financials.totalAmount).toBe(1860);
       expect(invoice.lineItems).toHaveLength(1);
+    });
+
+    it('generateInvoicePdf should generate downloadable invoice PDF buffer', async () => {
+      const mockOrder = {
+        id: 'order-1',
+        orderNumber: 'ZV-20260901-4892',
+        userId: 'user-1',
+        status: OrderStatus.CONFIRMED,
+        paymentStatus: PaymentStatus.PAID,
+        paymentMethod: PaymentMethod.STRIPE,
+        subtotal: new Decimal(2000),
+        discountAmount: new Decimal(200),
+        shippingCost: new Decimal(60),
+        totalAmount: new Decimal(1860),
+        shippingAddress: {
+          fullName: 'Mir Noman',
+          city: 'Dhaka',
+          phone: '01712345678',
+        },
+        billingAddress: null,
+        coupon: { code: 'ZEVON10' },
+        shippingZone: { name: 'Inside Dhaka City' },
+        user: {
+          id: 'user-1',
+          name: 'Mir Noman',
+          email: 'noman@example.com',
+          phone: '01712345678',
+        },
+        items: [
+          {
+            id: 'item-1',
+            productId: 'prod-1',
+            productTitle: 'Shirt',
+            sku: 'SHIRT-M',
+            size: 'M',
+            color: 'Black',
+            unitPrice: new Decimal(2000),
+            quantity: 1,
+            totalPrice: new Decimal(2000),
+          },
+        ],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (prisma.order.findUnique as jest.Mock).mockResolvedValue(mockOrder);
+
+      const result = await service.generateInvoicePdf('order-1', 'user-1');
+
+      expect(result.filename).toBe('invoice-ZV-20260901-4892.pdf');
+      expect(result.buffer).toBeInstanceOf(Buffer);
+      expect(pdfInvoiceService.generateInvoicePdf).toHaveBeenCalled();
+    });
+
+    it('generateInvoicePdf should throw ForbiddenException if requesting user is not owner and not admin', async () => {
+      const mockOrder = {
+        id: 'order-1',
+        orderNumber: 'ZV-20260901-4892',
+        userId: 'user-owner',
+        items: [],
+        shippingAddress: {},
+      };
+
+      (prisma.order.findUnique as jest.Mock).mockResolvedValue(mockOrder);
+
+      await expect(
+        service.generateInvoicePdf('order-1', 'user-intruder', false),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('generateShippingLabelPdf should generate thermal shipping label PDF', async () => {
+      const mockOrder = {
+        id: 'order-1',
+        orderNumber: 'ZV-20260901-4892',
+        userId: 'user-1',
+        status: OrderStatus.CONFIRMED,
+        paymentStatus: PaymentStatus.PENDING,
+        paymentMethod: PaymentMethod.COD,
+        totalAmount: new Decimal(1860),
+        shippingAddress: {
+          fullName: 'Mir Noman',
+          city: 'Dhaka',
+          phone: '01712345678',
+        },
+        shippingZone: { name: 'Inside Dhaka City' },
+        user: { name: 'Mir Noman', phone: '01712345678' },
+        items: [{ quantity: 2 }],
+        createdAt: new Date(),
+      };
+
+      (prisma.order.findUnique as jest.Mock).mockResolvedValue(mockOrder);
+
+      const result = await service.generateShippingLabelPdf('order-1');
+
+      expect(result.filename).toBe('shipping-label-ZV-20260901-4892.pdf');
+      expect(result.buffer).toBeInstanceOf(Buffer);
+      expect(shippingLabelService.generateShippingLabelPdf).toHaveBeenCalled();
+    });
+
+    it('generateBulkShippingLabelsPdf should generate multi-page shipping labels PDF', async () => {
+      const mockOrders = [
+        {
+          id: 'order-1',
+          orderNumber: 'ZV-20260901-1',
+          paymentStatus: PaymentStatus.PAID,
+          paymentMethod: PaymentMethod.STRIPE,
+          totalAmount: new Decimal(1000),
+          shippingAddress: { fullName: 'Customer 1' },
+          items: [{ quantity: 1 }],
+          createdAt: new Date(),
+        },
+        {
+          id: 'order-2',
+          orderNumber: 'ZV-20260901-2',
+          paymentStatus: PaymentStatus.PENDING,
+          paymentMethod: PaymentMethod.COD,
+          totalAmount: new Decimal(2000),
+          shippingAddress: { fullName: 'Customer 2' },
+          items: [{ quantity: 2 }],
+          createdAt: new Date(),
+        },
+      ];
+
+      (prisma.order.findMany as jest.Mock).mockResolvedValue(mockOrders);
+
+      const result = await service.generateBulkShippingLabelsPdf([
+        'order-1',
+        'order-2',
+      ]);
+
+      expect(result.filename).toContain('bulk-shipping-labels-');
+      expect(result.buffer).toBeInstanceOf(Buffer);
+      expect(
+        shippingLabelService.generateBulkShippingLabelsPdf,
+      ).toHaveBeenCalled();
     });
 
     it('getMetricsSummary should aggregate revenue and count orders by status', async () => {

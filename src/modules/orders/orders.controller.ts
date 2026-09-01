@@ -8,7 +8,9 @@ import {
   Query,
   HttpStatus,
   HttpCode,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -24,6 +26,7 @@ import {
   OrderQueryDto,
   TrackOrderDto,
   AssignCourierDto,
+  BulkShippingLabelDto,
 } from './dto/index.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
@@ -196,6 +199,93 @@ export class OrdersController {
   })
   generateInvoice(@Param('id') id: string) {
     return this.ordersService.generateInvoice(id);
+  }
+
+  @Get(':id/invoice/pdf')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Download/Stream A4 PDF Invoice for an order (Customer & Admin)',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Returns binary PDF stream of the order invoice',
+  })
+  async downloadInvoicePdf(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: string,
+    @Res() res: Response,
+  ) {
+    const isAdmin = role === 'ADMIN' || role === 'MANAGER';
+    const { buffer, filename } = await this.ordersService.generateInvoicePdf(
+      id,
+      userId,
+      isAdmin,
+    );
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${filename}"`,
+      'Content-Length': String(buffer.length),
+    });
+
+    res.end(buffer);
+  }
+
+  @Get(':id/shipping-label/pdf')
+  @Roles('ADMIN', 'MANAGER')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary:
+      'Download/Stream 4x6" thermal printable shipping barcode label (Admin/Manager)',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Returns binary PDF stream of the 4x6" shipping label',
+  })
+  async downloadShippingLabelPdf(
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    const { buffer, filename } =
+      await this.ordersService.generateShippingLabelPdf(id);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${filename}"`,
+      'Content-Length': String(buffer.length),
+    });
+
+    res.end(buffer);
+  }
+
+  @Post('shipping-labels/bulk-pdf')
+  @Roles('ADMIN', 'MANAGER')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Download consolidated multi-page PDF of 4x6" shipping labels for multiple orders (Admin/Manager)',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description:
+      'Returns consolidated multi-page binary PDF stream of shipping labels',
+  })
+  async downloadBulkShippingLabelsPdf(
+    @Body() bulkDto: BulkShippingLabelDto,
+    @Res() res: Response,
+  ) {
+    const { buffer, filename } =
+      await this.ordersService.generateBulkShippingLabelsPdf(bulkDto.orderIds);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${filename}"`,
+      'Content-Length': String(buffer.length),
+    });
+
+    res.end(buffer);
   }
 
   @Patch(':id/payment-status')
