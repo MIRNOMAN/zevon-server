@@ -107,4 +107,18 @@ export class CartsController {
   ) {
     return this.cartsService.syncCart(userId, syncCartDto);
   }
+
+  @Post('merge')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Guest shopping bag merged into customer cart successfully')
+  @ApiOperation({
+    summary:
+      'Saved Bag / Persistent Cart Merge: Merges guest cart items across devices into database on customer login',
+  })
+  mergeCart(
+    @CurrentUser('userId') userId: string,
+    @Body() syncCartDto: SyncCartDto,
+  ) {
+    return this.cartsService.syncCart(userId, syncCartDto);
+  }
 }

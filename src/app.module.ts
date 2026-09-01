@@ -28,6 +28,9 @@ import { MailModule } from './modules/mail/mail.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
 import { ReturnsModule } from './modules/returns/returns.module.js';
 import { AnalyticsModule } from './modules/analytics/analytics.module.js';
+import { StockAlertsModule } from './modules/stock-alerts/stock-alerts.module.js';
+import { CurrencyModule } from './modules/currency/currency.module.js';
+import { RecommendationsModule } from './modules/recommendations/recommendations.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -62,6 +65,9 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     PaymentsModule,
     ReturnsModule,
     AnalyticsModule,
+    StockAlertsModule,
+    CurrencyModule,
+    RecommendationsModule,
   ],
   providers: [
     // 1. Global JWT guard — all routes are protected unless decorated with @Public()

@@ -248,4 +248,79 @@ export class MailService {
 </html>
     `;
   }
+
+  /**
+   * Back-in-Stock Alert: Sends notification email when variant inventory is restocked.
+   */
+  async sendBackInStockEmail(ctx: {
+    customerEmail: string;
+    customerName?: string;
+    productTitle: string;
+    productSlug: string;
+    sku: string;
+    size: string;
+    color: string;
+    unitPrice: number;
+    imageUrl?: string | null;
+  }): Promise<boolean> {
+    const subject = `🔥 It's Back! ${ctx.productTitle} (${ctx.color}, ${ctx.size}) is now in stock!`;
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f8fafc;">
+  <div style="max-width: 600px; margin: 30px auto; background: #1e293b; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
+    <div style="background: linear-gradient(135deg, #059669, #0d9488); padding: 30px 20px; text-align: center;">
+      <h1 style="margin: 0; color: #ffffff; font-size: 24px; letter-spacing: 2px;">ZEVON</h1>
+      <p style="margin: 8px 0 0; color: #a7f3d0; font-size: 14px; text-transform: uppercase; font-weight: 600;">Back in Stock Notification</p>
+    </div>
+    <div style="padding: 30px;">
+      <p style="font-size: 16px; margin: 0 0 16px; color: #cbd5e1;">Good news${ctx.customerName ? ` ${ctx.customerName}` : ''}!</p>
+      <p style="font-size: 14px; line-height: 1.6; color: #94a3b8; margin-bottom: 24px;">
+        An item you requested is back in stock at ZEVON. Inventory is limited, so grab yours before it sells out again.
+      </p>
+      <div style="background-color: #0f172a; border-radius: 8px; padding: 20px; border: 1px solid #334155; margin-bottom: 24px;">
+        <h3 style="margin: 0 0 8px; font-size: 18px; color: #ffffff;">${ctx.productTitle}</h3>
+        <p style="margin: 0 0 4px; font-size: 14px; color: #38bdf8;"><strong>Color:</strong> ${ctx.color} | <strong>Size:</strong> ${ctx.size}</p>
+        <p style="margin: 0 0 4px; font-size: 13px; color: #64748b;"><strong>SKU:</strong> ${ctx.sku}</p>
+        <p style="margin: 12px 0 0; font-size: 18px; font-weight: 700; color: #10b981;">৳${ctx.unitPrice.toFixed(2)}</p>
+      </div>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="https://zevon.com/products/${ctx.productSlug}" style="display: inline-block; background-color: #10b981; color: #ffffff; text-decoration: none; padding: 14px 32px; font-size: 15px; font-weight: 600; border-radius: 8px; letter-spacing: 0.5px;">Shop Now</a>
+      </div>
+      <p style="margin: 0; font-size: 12px; color: #64748b; text-align: center; line-height: 1.5;">
+        You received this notification because you subscribed to back-in-stock alerts for this item.<br>
+        © ${new Date().getFullYear()} ZEVON Official.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+    `;
+
+    try {
+      if (this.transporter) {
+        await this.transporter.sendMail({
+          from: this.fromEmail,
+          to: ctx.customerEmail,
+          subject,
+          html,
+        });
+        this.logger.log(
+          `🔔 Back-in-stock email delivered to ${ctx.customerEmail} for variant ${ctx.sku}`,
+        );
+      } else {
+        this.logger.log(
+          `🔔 [DEV EMAIL LOG] Back-in-stock Alert for ${ctx.customerEmail}: ${ctx.productTitle} (${ctx.sku})`,
+        );
+      }
+      return true;
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `❌ Failed to deliver back-in-stock email to ${ctx.customerEmail}: ${errorMsg}`,
+      );
+      return false;
+    }
+  }
 }

@@ -89,6 +89,12 @@ enum BannerPlacement {
   POPUP
 }
 
+enum StockAlertStatus {
+  PENDING
+  NOTIFIED
+  CANCELLED
+}
+
 // ──────────────────────────────────────────────────────────────
 // 1. User & Authentication
 // ──────────────────────────────────────────────────────────────
@@ -113,6 +119,8 @@ model User {
   cart               Cart?
   returnRequests     ReturnRequest[]
   supportTickets     SupportTicket[]
+  stockAlerts        StockAlert[]
+  productViews       ProductView[]
 
   @@index([role])
   @@index([email])
@@ -199,6 +207,7 @@ model Product {
   orderItems     OrderItem[]
   flashSaleItems FlashSaleItem[]
   hotspots       LookbookHotspot[]
+  productViews   ProductView[]
 
   @@index([slug])
   @@index([categoryId])
@@ -224,8 +233,9 @@ model ProductVariant {
   createdAt  DateTime    @default(now()) @map("created_at")
   updatedAt  DateTime    @updatedAt @map("updated_at")
 
-  orderItems OrderItem[]
-  cartItems  CartItem[]
+  orderItems  OrderItem[]
+  cartItems   CartItem[]
+  stockAlerts StockAlert[]
 
   @@unique([productId, color, size])
   @@index([sku])
@@ -660,3 +670,46 @@ model StoreLocation {
 
   @@map("store_locations")
 }
+
+// ──────────────────────────────────────────────────────────────
+// 20. Stock Alert (Notify Me When Available)
+// ──────────────────────────────────────────────────────────────
+
+model StockAlert {
+  id               String           @id @default(cuid())
+  productVariantId String           @map("product_variant_id")
+  productVariant   ProductVariant   @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  userId           String?          @map("user_id")
+  user             User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email            String
+  phone            String?
+  status           StockAlertStatus @default(PENDING)
+  notifiedAt       DateTime?        @map("notified_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  @@index([productVariantId])
+  @@index([email])
+  @@index([status])
+  @@map("stock_alerts")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 21. Product View (Browsing History Tracking)
+// ──────────────────────────────────────────────────────────────
+
+model ProductView {
+  id        String   @id @default(cuid())
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId String?  @map("session_id")
+  viewedAt  DateTime @default(now()) @map("viewed_at")
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([productId])
+  @@map("product_views")
+}
+
