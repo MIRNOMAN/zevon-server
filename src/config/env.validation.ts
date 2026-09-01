@@ -28,6 +28,22 @@ export const envSchema = z.object({
   // Throttle
   THROTTLE_TTL: z.coerce.number().int().positive().default(60),
   THROTTLE_LIMIT: z.coerce.number().int().positive().default(100),
+
+  // Stripe Payment Gateway
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_PUBLISHABLE_KEY: z.string().optional(),
+  STRIPE_CURRENCY: z.string().default('bdt'),
+  STRIPE_SUCCESS_URL: z.string().optional(),
+  STRIPE_CANCEL_URL: z.string().optional(),
+
+  // SMTP Email Delivery
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().optional().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_SECURE: z.coerce.boolean().optional().default(false),
+  EMAIL_FROM: z.string().optional().default('ZEVON Store <no-reply@zevon.com>'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

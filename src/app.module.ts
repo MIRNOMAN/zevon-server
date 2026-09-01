@@ -5,6 +5,8 @@ import {
   appConfig,
   databaseConfig,
   jwtConfig,
+  stripeConfig,
+  mailConfig,
   validateEnv,
 } from './config/index.js';
 import { DatabaseModule } from './database/database.module.js';
@@ -22,6 +24,8 @@ import { ReviewsModule } from './modules/reviews/reviews.module.js';
 import { CouponsModule } from './modules/coupons/coupons.module.js';
 import { ShippingModule } from './modules/shipping/shipping.module.js';
 import { OrdersModule } from './modules/orders/orders.module.js';
+import { MailModule } from './modules/mail/mail.module.js';
+import { PaymentsModule } from './modules/payments/payments.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -30,7 +34,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     // ── Configuration ────────────────────────────────────────────
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, databaseConfig, jwtConfig],
+      load: [appConfig, databaseConfig, jwtConfig, stripeConfig, mailConfig],
       validate: validateEnv,
     }),
 
@@ -52,6 +56,8 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     CouponsModule,
     ShippingModule,
     OrdersModule,
+    MailModule,
+    PaymentsModule,
   ],
   providers: [
     // 1. Global JWT guard — all routes are protected unless decorated with @Public()
