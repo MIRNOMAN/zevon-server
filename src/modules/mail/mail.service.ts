@@ -538,4 +538,158 @@ export class MailService {
       return false;
     }
   }
+
+  /**
+   * Sends 6-digit registration verification OTP to customer's email.
+   */
+  async sendRegistrationOtpEmail(
+    to: string,
+    otp: string,
+    name?: string,
+  ): Promise<boolean> {
+    const subject = `🔐 ${otp} is your ZEVON Verification Code`;
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0a0a0a; color: #f5f5f5;">
+  <div style="max-width: 540px; margin: 30px auto; background: #141414; border-radius: 16px; overflow: hidden; border: 1px solid #262626; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+    
+    <!-- Brand Header -->
+    <div style="background: linear-gradient(135deg, #171717 0%, #262626 100%); padding: 32px 24px; text-align: center; border-bottom: 1px solid #262626;">
+      <h1 style="margin: 0; color: #ffffff; font-size: 26px; letter-spacing: 4px; font-weight: 900; text-transform: uppercase;">ZEVON</h1>
+      <p style="margin: 8px 0 0; color: #a3a3a3; font-size: 13px; letter-spacing: 1px; text-transform: uppercase;">Account Verification</p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding: 36px 28px;">
+      <h2 style="margin: 0 0 12px; font-size: 18px; color: #ffffff; font-weight: 700;">
+        Welcome to ZEVON${name ? `, ${name}` : ''}!
+      </h2>
+      <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.6; color: #a3a3a3;">
+        Please use the following 6-digit verification code to complete your registration. This code is valid for <strong>10 minutes</strong>.
+      </p>
+
+      <!-- OTP Code Box -->
+      <div style="background: #1c1c1c; border-radius: 12px; padding: 24px 16px; text-align: center; border: 1px solid #333333; margin-bottom: 24px;">
+        <span style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #737373; font-weight: 600; display: block; margin-bottom: 8px;">Your Verification Code</span>
+        <div style="font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #ffffff; font-family: 'Courier New', Courier, monospace;">
+          ${otp}
+        </div>
+      </div>
+
+      <p style="margin: 0 0 24px; font-size: 13px; line-height: 1.5; color: #737373;">
+        If you did not request this code, please ignore this email. Do not share this code with anyone.
+      </p>
+
+      <div style="border-top: 1px solid #262626; padding-top: 20px; text-align: center;">
+        <p style="margin: 0; font-size: 12px; color: #525252;">
+          © ${new Date().getFullYear()} ZEVON Official. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+    `;
+
+    try {
+      if (this.transporter) {
+        await this.transporter.sendMail({
+          from: this.fromEmail,
+          to,
+          subject,
+          html,
+        });
+        this.logger.log(`📧 Registration OTP sent to ${to}`);
+      } else {
+        this.logger.log(
+          `🔐 [DEV/CONSOLE EMAIL] Registration OTP for ${to} (${name || 'User'}): ${otp}`,
+        );
+      }
+      return true;
+    } catch (err: unknown) {
+      this.logger.error(
+        `❌ Failed to send registration OTP email to ${to}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Sends 6-digit password reset OTP to user's email.
+   */
+  async sendPasswordResetOtpEmail(
+    to: string,
+    otp: string,
+    name?: string,
+  ): Promise<boolean> {
+    const subject = `🔒 ${otp} is your ZEVON Password Reset Code`;
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0a0a0a; color: #f5f5f5;">
+  <div style="max-width: 540px; margin: 30px auto; background: #141414; border-radius: 16px; overflow: hidden; border: 1px solid #262626; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+    
+    <!-- Brand Header -->
+    <div style="background: linear-gradient(135deg, #171717 0%, #262626 100%); padding: 32px 24px; text-align: center; border-bottom: 1px solid #262626;">
+      <h1 style="margin: 0; color: #ffffff; font-size: 26px; letter-spacing: 4px; font-weight: 900; text-transform: uppercase;">ZEVON</h1>
+      <p style="margin: 8px 0 0; color: #ef4444; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600;">Password Reset Request</p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding: 36px 28px;">
+      <h2 style="margin: 0 0 12px; font-size: 18px; color: #ffffff; font-weight: 700;">
+        Reset Your Password${name ? `, ${name}` : ''}
+      </h2>
+      <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.6; color: #a3a3a3;">
+        We received a request to reset the password for your ZEVON account. Enter the 6-digit code below to create a new password. This code will expire in <strong>10 minutes</strong>.
+      </p>
+
+      <!-- OTP Code Box -->
+      <div style="background: #1c1c1c; border-radius: 12px; padding: 24px 16px; text-align: center; border: 1px solid #333333; margin-bottom: 24px;">
+        <span style="font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #737373; font-weight: 600; display: block; margin-bottom: 8px;">Password Reset Code</span>
+        <div style="font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #ffffff; font-family: 'Courier New', Courier, monospace;">
+          ${otp}
+        </div>
+      </div>
+
+      <p style="margin: 0 0 24px; font-size: 13px; line-height: 1.5; color: #737373;">
+        If you did not request a password reset, you can safely ignore this email. Your current password remains secure.
+      </p>
+
+      <div style="border-top: 1px solid #262626; padding-top: 20px; text-align: center;">
+        <p style="margin: 0; font-size: 12px; color: #525252;">
+          © ${new Date().getFullYear()} ZEVON Official. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+    `;
+
+    try {
+      if (this.transporter) {
+        await this.transporter.sendMail({
+          from: this.fromEmail,
+          to,
+          subject,
+          html,
+        });
+        this.logger.log(`📧 Password reset OTP sent to ${to}`);
+      } else {
+        this.logger.log(
+          `🔒 [DEV/CONSOLE EMAIL] Password Reset OTP for ${to} (${name || 'User'}): ${otp}`,
+        );
+      }
+      return true;
+    } catch (err: unknown) {
+      this.logger.error(
+        `❌ Failed to send password reset OTP email to ${to}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return false;
+    }
+  }
 }

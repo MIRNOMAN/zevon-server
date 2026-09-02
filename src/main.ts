@@ -37,8 +37,29 @@ async function bootstrap() {
 
   // ── CORS ─────────────────────────────────────────────────────
   app.enableCors({
-    origin:
-      corsOrigin === '*' ? '*' : corsOrigin.split(',').map((o) => o.trim()),
+    origin: (
+      requestOrigin: string | undefined,
+      callback: (err: Error | null, allow?: boolean | string) => void,
+    ) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!requestOrigin) return callback(null, true);
+
+      // In development, allow all localhost and 127.0.0.1 origins on any port
+      if (
+        nodeEnv !== 'production' ||
+        corsOrigin === '*' ||
+        /^https?:\/\/(localhost|127\.0\.0\.1)(:[0-9]+)?$/.test(requestOrigin)
+      ) {
+        return callback(null, true);
+      }
+
+      const allowedOrigins = corsOrigin.split(',').map((o) => o.trim());
+      if (allowedOrigins.includes(requestOrigin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Not allowed by CORS'), false);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
@@ -46,7 +67,9 @@ async function bootstrap() {
       'Authorization',
       'Accept',
       'X-Requested-With',
+      'Origin',
     ],
+    exposedHeaders: ['Set-Cookie'],
   });
 
   // ── Global Pipes ─────────────────────────────────────────────
