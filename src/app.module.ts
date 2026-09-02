@@ -38,6 +38,7 @@ import { AbandonedCartModule } from './modules/abandoned-cart/abandoned-cart.mod
 import { GiftCardsModule } from './modules/gift-cards/gift-cards.module.js';
 import { OutfitsModule } from './modules/outfits/outfits.module.js';
 import { SearchModule } from './modules/search/search.module.js';
+import { ChatModule } from './modules/chat/chat.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -82,6 +83,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     GiftCardsModule,
     OutfitsModule,
     SearchModule,
+    ChatModule,
   ],
   providers: [
     // 1. Global JWT guard — all routes are protected unless decorated with @Public()

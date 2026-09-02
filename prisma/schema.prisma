@@ -167,6 +167,7 @@ model User {
   referralRecords      Referral[]           @relation("Referrer")
   refereeRecord        Referral?            @relation("Referee")
   outfits              Outfit[]
+  sentChatMessages     ChatMessage[]        @relation("SentChatMessages")
 
   @@index([role])
   @@index([email])
@@ -917,5 +918,28 @@ model OutfitItem {
   @@index([outfitId])
   @@index([productId])
   @@map("outfit_items")
+}
+
+// ──────────────────────────────────────────────────────────────
+// 26. Real-Time Support Chat
+// ──────────────────────────────────────────────────────────────
+
+model ChatMessage {
+  id             String   @id @default(cuid())
+  roomId         String   @map("room_id")
+  senderId       String   @map("sender_id")
+  sender         User     @relation("SentChatMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  customerId     String   @map("customer_id")
+  content        String?  @db.Text
+  attachmentUrl  String?  @map("attachment_url")
+  attachmentType String?  @map("attachment_type")
+  isRead         Boolean  @default(false) @map("is_read")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([roomId, createdAt])
+  @@index([customerId])
+  @@index([senderId])
+  @@map("chat_messages")
 }
 
