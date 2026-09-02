@@ -55,7 +55,7 @@ describe('ChatController', () => {
   });
 
   describe('uploadAttachment', () => {
-    it('should format upload response correctly for image', async () => {
+    it('should format upload response correctly for image', () => {
       const mockFile: Express.Multer.File = {
         fieldname: 'file',
         originalname: 'screenshot.png',
@@ -69,7 +69,7 @@ describe('ChatController', () => {
         stream: Readable.from([]),
       };
 
-      const result = await controller.uploadAttachment(mockFile);
+      const result = controller.uploadAttachment(mockFile);
 
       expect(result).toEqual({
         url: '/uploads/chat/attachment-12345.png',
@@ -80,7 +80,7 @@ describe('ChatController', () => {
       });
     });
 
-    it('should format upload response correctly for PDF', async () => {
+    it('should format upload response correctly for PDF', () => {
       const mockFile: Express.Multer.File = {
         fieldname: 'file',
         originalname: 'invoice.pdf',
@@ -94,7 +94,7 @@ describe('ChatController', () => {
         stream: Readable.from([]),
       };
 
-      const result = await controller.uploadAttachment(mockFile);
+      const result = controller.uploadAttachment(mockFile);
 
       expect(result).toEqual({
         url: '/uploads/chat/attachment-99999.pdf',
