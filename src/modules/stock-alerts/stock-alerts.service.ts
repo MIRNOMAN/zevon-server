@@ -29,18 +29,38 @@ export class StockAlertsService {
     const cleanEmail = email.trim().toLowerCase();
 
     // 1. Verify Product Variant exists
-    const variant = await this.prisma.productVariant.findUnique({
+    let variant = await this.prisma.productVariant.findUnique({
       where: { id: productVariantId },
       include: {
         product: { select: { id: true, title: true, isPublished: true } },
       },
     });
 
+    if (!variant) {
+      variant = await this.prisma.productVariant.findUnique({
+        where: { sku: productVariantId },
+        include: {
+          product: { select: { id: true, title: true, isPublished: true } },
+        },
+      });
+    }
+
+    if (!variant) {
+      variant = await this.prisma.productVariant.findFirst({
+        where: { productId: productVariantId },
+        include: {
+          product: { select: { id: true, title: true, isPublished: true } },
+        },
+      });
+    }
+
     if (!variant || !variant.product.isPublished) {
       throw new NotFoundException(
         'The requested product variant was not found',
       );
     }
+
+    const actualVariantId = variant.id;
 
     // 2. If item is currently in stock (> 0), inform customer
     if (variant.stock > 0) {
@@ -55,7 +75,7 @@ export class StockAlertsService {
     // 3. Prevent duplicate active subscriptions
     const existingSubscription = await this.prisma.stockAlert.findFirst({
       where: {
-        productVariantId,
+        productVariantId: actualVariantId,
         email: cleanEmail,
         status: StockAlertStatus.PENDING,
       },
@@ -73,7 +93,7 @@ export class StockAlertsService {
     // 4. Create new StockAlert record
     const alert = await this.prisma.stockAlert.create({
       data: {
-        productVariantId,
+        productVariantId: actualVariantId,
         userId: userId || null,
         email: cleanEmail,
         phone: phone ? phone.trim() : null,
