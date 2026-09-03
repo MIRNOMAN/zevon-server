@@ -245,6 +245,543 @@ async function main() {
   }
 
   console.log(`✅ Default banners seeded (${banners.length} banners)`);
+
+  // Seed default Categories (Hierarchical Root & Sub-categories)
+  const categorySeeds = [
+    {
+      name: "Men's Streetwear",
+      slug: 'men',
+      description: '380 GSM Drop-Shoulder Tees, Cargos & Hoodies',
+      imageUrl:
+        'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=900&auto=format&fit=crop&q=80',
+      sortOrder: 1,
+      children: [
+        {
+          name: 'T-Shirts & Tops',
+          slug: 'men-t-shirts',
+          description: 'Oversized 380+ GSM heavyweight tees',
+          sortOrder: 1,
+        },
+        {
+          name: 'Hoodies & Sweatshirts',
+          slug: 'men-hoodies',
+          description: 'French terry and fleece relaxed hoodies',
+          sortOrder: 2,
+        },
+        {
+          name: 'Pants & Cargos',
+          slug: 'men-pants',
+          description: 'Tailored utility cargos and wide-leg trousers',
+          sortOrder: 3,
+        },
+        {
+          name: 'Co-ords & Sets',
+          slug: 'men-coords',
+          description: 'Matching minimal top and bottom sets',
+          sortOrder: 4,
+        },
+      ],
+    },
+    {
+      name: "Women's Minimalist Co-ords",
+      slug: 'women',
+      description: 'Two-Piece Knit Sets, Wide Leg Trousers & Ribbed Tops',
+      imageUrl:
+        'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900&auto=format&fit=crop&q=80',
+      sortOrder: 2,
+      children: [
+        {
+          name: 'Co-ords & Matching Sets',
+          slug: 'women-coords',
+          description: 'Ribbed knit and linen co-ord sets',
+          sortOrder: 1,
+        },
+        {
+          name: 'Dresses & Jumpsuits',
+          slug: 'women-dresses',
+          description: 'Architectural column dresses and slips',
+          sortOrder: 2,
+        },
+        {
+          name: 'Tops & Tees',
+          slug: 'women-tops',
+          description: 'Sculpted crop tops and baby tees',
+          sortOrder: 3,
+        },
+        {
+          name: 'Trousers & Skirts',
+          slug: 'women-trousers',
+          description: 'High-waisted pleated trousers and maxi skirts',
+          sortOrder: 4,
+        },
+      ],
+    },
+    {
+      name: 'Tailored Outerwear & Jackets',
+      slug: 'outerwear',
+      description: 'Minimalist Blazers, Structured Trench & Bombers',
+      imageUrl:
+        'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=900&auto=format&fit=crop&q=80',
+      sortOrder: 3,
+      children: [
+        {
+          name: 'Jackets & Bombers',
+          slug: 'jackets-bombers',
+          description: 'Cropped flight jackets and leather bombers',
+          sortOrder: 1,
+        },
+        {
+          name: 'Trench & Overcoats',
+          slug: 'trench-overcoats',
+          description: 'Longline structured double-breasted coats',
+          sortOrder: 2,
+        },
+        {
+          name: 'Blazers',
+          slug: 'blazers',
+          description: 'Relaxed oversized tailored blazers',
+          sortOrder: 3,
+        },
+      ],
+    },
+    {
+      name: 'Architectural Accessories',
+      slug: 'accessories',
+      description: 'Leather Goods, Silver Jewelry & Canvas Caps',
+      imageUrl:
+        'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=900&auto=format&fit=crop&q=80',
+      sortOrder: 4,
+      children: [
+        {
+          name: 'Caps & Headwear',
+          slug: 'caps-headwear',
+          description: 'Distressed canvas caps and beanies',
+          sortOrder: 1,
+        },
+        {
+          name: 'Bags & Crossbody',
+          slug: 'bags-wallets',
+          description: 'Minimalist tote bags and technical chest rigs',
+          sortOrder: 2,
+        },
+        {
+          name: 'Jewelry & Silverware',
+          slug: 'jewelry',
+          description: '925 silver chains, signet rings and cuffs',
+          sortOrder: 3,
+        },
+      ],
+    },
+  ];
+
+  for (const catSeed of categorySeeds) {
+    const { children, ...parentData } = catSeed;
+    const parent = await prisma.category.upsert({
+      where: { slug: parentData.slug },
+      update: {
+        name: parentData.name,
+        description: parentData.description,
+        imageUrl: parentData.imageUrl,
+        sortOrder: parentData.sortOrder,
+        isActive: true,
+      },
+      create: {
+        ...parentData,
+        isActive: true,
+      },
+    });
+
+    if (children && children.length > 0) {
+      for (const child of children) {
+        await prisma.category.upsert({
+          where: { slug: child.slug },
+          update: {
+            name: child.name,
+            description: child.description,
+            sortOrder: child.sortOrder,
+            parentId: parent.id,
+            isActive: true,
+          },
+          create: {
+            ...child,
+            parentId: parent.id,
+            isActive: true,
+          },
+        });
+      }
+    }
+  }
+
+  console.log(
+    `✅ Default categories seeded (${categorySeeds.length} root categories with subcategories)`,
+  );
+
+  // Seed default Products for Men & Women categories
+  const productSeeds = [
+    // ── MEN'S PRODUCTS ──────────────────────────────────────────
+    {
+      title: 'ZEVON 380 GSM Heavyweight Oversized Tee',
+      slug: 'zevon-380-gsm-heavyweight-oversized-tee',
+      description:
+        'Engineered with 380 GSM super-combed organic cotton. Designed with a structured boxy cut, drop-shoulder silhouette, and reinforced ribbed collar.',
+      details: 'Boxy oversized fit, heavy drape, pre-shrunk organic fabric.',
+      fabricSpecs: '100% Super-Combed Organic Cotton, 380 GSM Heavy Interlock Weave.',
+      washCare: 'Cold machine wash inside out. Do not tumble dry.',
+      tags: ['Heavyweight', 'Oversized', 'Streetwear', 'Organic', 'SS26'],
+      basePrice: 1850,
+      discountPrice: 1450,
+      categorySlug: 'men-t-shirts',
+      gender: 'MEN',
+      season: 'SS/26',
+      isFeatured: true,
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=900&auto=format&fit=crop&q=80',
+          altText: 'ZEVON 380 GSM Heavyweight Tee - Front View',
+          isPrimary: true,
+        },
+        {
+          url: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=900&auto=format&fit=crop&q=80',
+          altText: 'ZEVON 380 GSM Heavyweight Tee - Detail',
+          isPrimary: false,
+        },
+      ],
+      variants: [
+        { sku: 'ZEV-MEN-TEE-BLK-S', color: 'Onyx Black', colorCode: '#111111', size: 'S', stock: 25 },
+        { sku: 'ZEV-MEN-TEE-BLK-M', color: 'Onyx Black', colorCode: '#111111', size: 'M', stock: 40 },
+        { sku: 'ZEV-MEN-TEE-BLK-L', color: 'Onyx Black', colorCode: '#111111', size: 'L', stock: 35 },
+        { sku: 'ZEV-MEN-TEE-WHT-M', color: 'Chalk White', colorCode: '#F4F4F0', size: 'M', stock: 30 },
+        { sku: 'ZEV-MEN-TEE-WHT-L', color: 'Chalk White', colorCode: '#F4F4F0', size: 'L', stock: 25 },
+      ],
+    },
+    {
+      title: 'Minimalist Acid Wash Drop-Shoulder Hoodie',
+      slug: 'minimalist-acid-wash-drop-shoulder-hoodie',
+      description:
+        '450 GSM luxury brushed fleece hoodie with double-layered crossover hood and hidden side-seam pockets.',
+      details: 'Drop shoulder, ribbed cuffs and hem, custom acid wash treatment.',
+      fabricSpecs: '80% Organic Cotton, 20% Recycled Poly Fleece (450 GSM).',
+      washCare: 'Machine wash cold with similar colors.',
+      tags: ['Hoodie', 'Fleece', 'Acid Wash', 'Winter', 'Streetwear'],
+      basePrice: 3200,
+      discountPrice: null,
+      categorySlug: 'men-hoodies',
+      gender: 'MEN',
+      season: 'SS/26',
+      isFeatured: true,
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=900&auto=format&fit=crop&q=80',
+          altText: 'Minimalist Acid Wash Hoodie',
+          isPrimary: true,
+        },
+      ],
+      variants: [
+        { sku: 'ZEV-MEN-HD-CHR-M', color: 'Charcoal Wash', colorCode: '#333333', size: 'M', stock: 20 },
+        { sku: 'ZEV-MEN-HD-CHR-L', color: 'Charcoal Wash', colorCode: '#333333', size: 'L', stock: 25 },
+        { sku: 'ZEV-MEN-HD-CHR-XL', color: 'Charcoal Wash', colorCode: '#333333', size: 'XL', stock: 15 },
+      ],
+    },
+    {
+      title: 'Architectural Wide-Leg Utility Cargo Pants',
+      slug: 'architectural-wide-leg-utility-cargo-pants',
+      description:
+        'Structured cotton twill cargo trousers with 3D articulated cargo pockets and adjustable ankle bungee cords.',
+      details: 'Relaxed wide leg, deep cargo bellows, matte hardware.',
+      fabricSpecs: '100% Heavyweight Cotton Twill (320 GSM).',
+      washCare: 'Machine wash cold, iron inside out.',
+      tags: ['Cargos', 'Utility', 'Pants', 'Streetwear'],
+      basePrice: 2850,
+      discountPrice: 2450,
+      categorySlug: 'men-pants',
+      gender: 'MEN',
+      season: 'SS/26',
+      isFeatured: true,
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=900&auto=format&fit=crop&q=80',
+          altText: 'Architectural Wide-Leg Cargo Pants',
+          isPrimary: true,
+        },
+      ],
+      variants: [
+        { sku: 'ZEV-MEN-CRG-OLV-30', color: 'Olive Green', colorCode: '#4B5320', size: 'M', stock: 18 },
+        { sku: 'ZEV-MEN-CRG-OLV-32', color: 'Olive Green', colorCode: '#4B5320', size: 'L', stock: 22 },
+        { sku: 'ZEV-MEN-CRG-BLK-30', color: 'Matte Black', colorCode: '#1A1A1A', size: 'M', stock: 20 },
+        { sku: 'ZEV-MEN-CRG-BLK-32', color: 'Matte Black', colorCode: '#1A1A1A', size: 'L', stock: 18 },
+      ],
+    },
+    {
+      title: 'Monochrome Heavy Knit Co-ord Set',
+      slug: 'monochrome-heavy-knit-co-ord-set',
+      description:
+        'Two-piece matching waffle knit shirt and relaxed shorts set engineered for breathable luxury and everyday ease.',
+      details: 'Relaxed silhouette, elasticated waistband, matching tonal buttons.',
+      fabricSpecs: '100% Combed Compact Cotton Waffle Knit.',
+      washCare: 'Hand wash or delicate cycle.',
+      tags: ['Co-ord', 'Knitwear', 'Set', 'Luxury'],
+      basePrice: 3800,
+      discountPrice: null,
+      categorySlug: 'men-coords',
+      gender: 'MEN',
+      season: 'SS/26',
+      isFeatured: false,
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900&auto=format&fit=crop&q=80',
+          altText: 'Monochrome Heavy Knit Co-ord Set',
+          isPrimary: true,
+        },
+      ],
+      variants: [
+        { sku: 'ZEV-MEN-CRD-SND-M', color: 'Sand Dune', colorCode: '#C2B280', size: 'M', stock: 15 },
+        { sku: 'ZEV-MEN-CRD-SND-L', color: 'Sand Dune', colorCode: '#C2B280', size: 'L', stock: 15 },
+      ],
+    },
+
+    // ── WOMEN'S PRODUCTS ────────────────────────────────────────
+    {
+      title: 'Monochrome Ribbed Knit Two-Piece Co-ord',
+      slug: 'monochrome-ribbed-knit-two-piece-co-ord',
+      description:
+        'Sculpted square-neck sleeveless top paired with flattering high-rise wide-leg ribbed knit trousers.',
+      details: 'Sculpting ribbed knit fabric with 4-way stretch and fluid drape.',
+      fabricSpecs: '92% Organic Cotton Rib, 8% Elastane (340 GSM).',
+      washCare: 'Machine wash cold on gentle cycle. Flat dry.',
+      tags: ['Co-ord', 'Ribbed Knit', 'Women', 'Minimalist', 'SS26'],
+      basePrice: 3450,
+      discountPrice: 2950,
+      categorySlug: 'women-coords',
+      gender: 'WOMEN',
+      season: 'SS/26',
+      isFeatured: true,
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900&auto=format&fit=crop&q=80',
+          altText: 'Monochrome Ribbed Knit Co-ord',
+          isPrimary: true,
+        },
+        {
+          url: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=900&auto=format&fit=crop&q=80',
+          altText: 'Monochrome Ribbed Knit Co-ord Detail',
+          isPrimary: false,
+        },
+      ],
+      variants: [
+        { sku: 'ZEV-WMN-CRD-OAT-XS', color: 'Oatmeal Heather', colorCode: '#DCD7D0', size: 'XS', stock: 18 },
+        { sku: 'ZEV-WMN-CRD-OAT-S', color: 'Oatmeal Heather', colorCode: '#DCD7D0', size: 'S', stock: 30 },
+        { sku: 'ZEV-WMN-CRD-OAT-M', color: 'Oatmeal Heather', colorCode: '#DCD7D0', size: 'M', stock: 25 },
+        { sku: 'ZEV-WMN-CRD-BLK-S', color: 'Midnight Black', colorCode: '#0D0D0D', size: 'S', stock: 20 },
+        { sku: 'ZEV-WMN-CRD-BLK-M', color: 'Midnight Black', colorCode: '#0D0D0D', size: 'M', stock: 22 },
+      ],
+    },
+    {
+      title: 'Architectural Column Maxi Slip Dress',
+      slug: 'architectural-column-maxi-slip-dress',
+      description:
+        'Minimalist bias-cut column slip dress featuring an open square back and side slit detail.',
+      details: 'Bias cut for natural drape, discreet side-zip closure.',
+      fabricSpecs: '100% Eco-Vero Viscose Satin with Silk Touch.',
+      washCare: 'Dry clean or gentle hand wash.',
+      tags: ['Dress', 'Slip Dress', 'Evening', 'Minimalist'],
+      basePrice: 3200,
+      discountPrice: null,
+      categorySlug: 'women-dresses',
+      gender: 'WOMEN',
+      season: 'SS/26',
+      isFeatured: true,
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=900&auto=format&fit=crop&q=80',
+          altText: 'Architectural Column Maxi Dress',
+          isPrimary: true,
+        },
+      ],
+      variants: [
+        { sku: 'ZEV-WMN-DRS-SLT-S', color: 'Slate Grey', colorCode: '#708090', size: 'S', stock: 15 },
+        { sku: 'ZEV-WMN-DRS-SLT-M', color: 'Slate Grey', colorCode: '#708090', size: 'M', stock: 20 },
+        { sku: 'ZEV-WMN-DRS-BLK-S', color: 'Pure Noir', colorCode: '#0A0A0A', size: 'S', stock: 18 },
+      ],
+    },
+    {
+      title: 'Sculpted Organic Cotton Baby Crop Top',
+      slug: 'sculpted-organic-cotton-baby-crop-top',
+      description:
+        'Fitted heavyweight baby tee with high crew neck and double-stitched raw hem detail.',
+      details: 'Form-flattering crop cut, super soft pre-washed organic cotton.',
+      fabricSpecs: '95% Organic Cotton, 5% Spandex (280 GSM).',
+      washCare: 'Machine wash cold, lay flat to dry.',
+      tags: ['Crop Top', 'Baby Tee', 'Essentials', 'Organic'],
+      basePrice: 1650,
+      discountPrice: null,
+      categorySlug: 'women-tops',
+      gender: 'WOMEN',
+      season: 'SS/26',
+      isFeatured: false,
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=900&auto=format&fit=crop&q=80',
+          altText: 'Sculpted Organic Cotton Crop Top',
+          isPrimary: true,
+        },
+      ],
+      variants: [
+        { sku: 'ZEV-WMN-TOP-WHT-S', color: 'Pure White', colorCode: '#FFFFFF', size: 'S', stock: 25 },
+        { sku: 'ZEV-WMN-TOP-WHT-M', color: 'Pure White', colorCode: '#FFFFFF', size: 'M', stock: 25 },
+        { sku: 'ZEV-WMN-TOP-BLK-S', color: 'Pitch Black', colorCode: '#111111', size: 'S', stock: 25 },
+      ],
+    },
+    {
+      title: 'High-Waisted Tailored Pleated Trousers',
+      slug: 'high-waisted-tailored-pleated-trousers',
+      description:
+        'Contemporary relaxed-fit wide-leg trousers featuring front double pleats and structured belt loops.',
+      details: 'Deep front pleats, slant pockets, tailored relaxed fit.',
+      fabricSpecs: '65% Tencel, 35% Rayon Twill (Fluid Stretch).',
+      washCare: 'Dry clean recommended.',
+      tags: ['Trousers', 'Pleated', 'Tailored', 'Workwear'],
+      basePrice: 2650,
+      discountPrice: 2250,
+      categorySlug: 'women-trousers',
+      gender: 'WOMEN',
+      season: 'SS/26',
+      isFeatured: true,
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=900&auto=format&fit=crop&q=80',
+          altText: 'High-Waisted Tailored Pleated Trousers',
+          isPrimary: true,
+        },
+      ],
+      variants: [
+        { sku: 'ZEV-WMN-TRS-TAU-S', color: 'Warm Taupe', colorCode: '#B38B6D', size: 'S', stock: 15 },
+        { sku: 'ZEV-WMN-TRS-TAU-M', color: 'Warm Taupe', colorCode: '#B38B6D', size: 'M', stock: 20 },
+      ],
+    },
+
+    // ── OUTERWEAR & ACCESSORIES ─────────────────────────────────
+    {
+      title: 'Structured Boxy Flight Bomber Jacket',
+      slug: 'structured-boxy-flight-bomber-jacket',
+      description:
+        'Water-resistant matte nylon bomber jacket with heavy silver metal zip, orange safety satin lining, and sleeve utility pocket.',
+      details: 'Oversized boxy cut, ribbed collar, storm flap.',
+      fabricSpecs: '100% Recycled Water-Repellent Matte Nylon with Polyfill.',
+      washCare: 'Wipe clean or dry clean.',
+      tags: ['Bomber', 'Jackets', 'Outerwear', 'Unisex'],
+      basePrice: 4800,
+      discountPrice: 3950,
+      categorySlug: 'jackets-bombers',
+      gender: 'UNISEX',
+      season: 'SS/26',
+      isFeatured: true,
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1548883354-7622d03aca27?w=900&auto=format&fit=crop&q=80',
+          altText: 'Structured Boxy Flight Bomber Jacket',
+          isPrimary: true,
+        },
+      ],
+      variants: [
+        { sku: 'ZEV-OUT-BMB-BLK-M', color: 'Tactical Black', colorCode: '#111111', size: 'M', stock: 12 },
+        { sku: 'ZEV-OUT-BMB-BLK-L', color: 'Tactical Black', colorCode: '#111111', size: 'L', stock: 15 },
+      ],
+    },
+    {
+      title: 'Vintage Washed Canvas Distressed Dad Cap',
+      slug: 'vintage-washed-canvas-distressed-dad-cap',
+      description:
+        'Unstructured 6-panel cap crafted from enzyme-washed heavyweight cotton canvas with tonal ZEVON embroidery.',
+      details: 'Curved visor, adjustable antique brass buckle strap.',
+      fabricSpecs: '100% Heavy Enzyme-Washed Cotton Canvas.',
+      washCare: 'Spot clean only.',
+      tags: ['Cap', 'Headwear', 'Accessories'],
+      basePrice: 950,
+      discountPrice: null,
+      categorySlug: 'caps-headwear',
+      gender: 'UNISEX',
+      season: 'SS/26',
+      isFeatured: true,
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=900&auto=format&fit=crop&q=80',
+          altText: 'Vintage Washed Canvas Cap',
+          isPrimary: true,
+        },
+      ],
+      variants: [
+        { sku: 'ZEV-ACC-CAP-WAS-OS', color: 'Washed Charcoal', colorCode: '#404040', size: 'OS', stock: 50 },
+      ],
+    },
+  ];
+
+  for (const pSeed of productSeeds) {
+    const { categorySlug, images, variants, ...prodData } = pSeed;
+
+    const cat = await prisma.category.findUnique({
+      where: { slug: categorySlug },
+    });
+
+    if (!cat) continue;
+
+    const existingProduct = await prisma.product.findUnique({
+      where: { slug: prodData.slug },
+    });
+
+    if (existingProduct) {
+      await prisma.product.update({
+        where: { id: existingProduct.id },
+        data: {
+          ...prodData,
+          categoryId: cat.id,
+        },
+      });
+    } else {
+      const createdProd = await prisma.product.create({
+        data: {
+          ...prodData,
+          categoryId: cat.id,
+        },
+      });
+
+      // Insert images
+      for (let i = 0; i < images.length; i++) {
+        const img = images[i]!;
+        await prisma.productImage.create({
+          data: {
+            productId: createdProd.id,
+            url: img.url,
+            altText: img.altText,
+            isPrimary: img.isPrimary,
+            sortOrder: i,
+          },
+        });
+      }
+
+      // Insert variants
+      for (const v of variants) {
+        await prisma.productVariant.upsert({
+          where: { sku: v.sku },
+          update: {
+            color: v.color,
+            colorCode: v.colorCode,
+            size: v.size,
+            stock: v.stock,
+          },
+          create: {
+            productId: createdProd.id,
+            sku: v.sku,
+            color: v.color,
+            colorCode: v.colorCode,
+            size: v.size,
+            stock: v.stock,
+          },
+        });
+      }
+    }
+  }
+
+  console.log(`✅ Default products seeded (${productSeeds.length} products with variants and galleries)`);
 }
 
 main()
