@@ -177,6 +177,74 @@ async function main() {
   console.log(
     `✅ Default shipping zones seeded (${shippingZones.length} zones)`,
   );
+
+  // Seed default Banners for Hero Slider and Sections
+  const banners = [
+    {
+      title: 'URBAN LUXURY. MINIMALIST ESSENCE.',
+      subtitle:
+        'Architectural silhouettes engineered with 380+ GSM super-combed organic cotton. Designed for the modern wardrobe and crafted ethically in Bangladesh.',
+      badge: 'SS/26 Collection Now Live • Drop 01',
+      imageUrl:
+        'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1600&auto=format&fit=crop&q=80',
+      mobileImageUrl:
+        'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop&q=80',
+      ctaText: 'Explore New Drops',
+      linkUrl: '/shop?filter=new',
+      placement: 'HERO' as const,
+      sortOrder: 1,
+      isActive: true,
+    },
+    {
+      title: 'HEAVYWEIGHT OVERSIZED ESSENTIALS.',
+      subtitle:
+        'Structured 380+ GSM boxy silhouettes, drop-shoulder designs, and custom-dyed muted earthy palettes.',
+      badge: 'Limited Archive Drop',
+      imageUrl:
+        'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1600&auto=format&fit=crop&q=80',
+      mobileImageUrl:
+        'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&auto=format&fit=crop&q=80',
+      ctaText: 'Shop Oversized',
+      linkUrl: '/shop?category=t-shirts',
+      placement: 'HERO' as const,
+      sortOrder: 2,
+      isActive: true,
+    },
+    {
+      title: 'CONTEMPORARY MONOCHROME SETS.',
+      subtitle:
+        'Effortlessly coordinated ribbed knit co-ords and tailored pleated trousers built for everyday versatility.',
+      badge: 'New Season',
+      imageUrl:
+        'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=1600&auto=format&fit=crop&q=80',
+      mobileImageUrl:
+        'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=800&auto=format&fit=crop&q=80',
+      ctaText: 'Explore Co-Ords',
+      linkUrl: '/shop?category=co-ords',
+      placement: 'HERO' as const,
+      sortOrder: 3,
+      isActive: true,
+    },
+  ];
+
+  for (const banner of banners) {
+    const existing = await prisma.banner.findFirst({
+      where: { title: banner.title, placement: banner.placement },
+    });
+
+    if (existing) {
+      await prisma.banner.update({
+        where: { id: existing.id },
+        data: banner,
+      });
+    } else {
+      await prisma.banner.create({
+        data: banner,
+      });
+    }
+  }
+
+  console.log(`✅ Default banners seeded (${banners.length} banners)`);
 }
 
 main()
