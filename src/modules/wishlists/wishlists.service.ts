@@ -8,20 +8,38 @@ export class WishlistsService {
   /**
    * Customer: Toggle add/remove a product in wishlist.
    */
-  async toggle(userId: string, productId: string) {
-    const product = await this.prisma.product.findUnique({
+    let product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
 
     if (!product) {
-      throw new NotFoundException(`Product with ID "${productId}" not found`);
+      product = await this.prisma.product.findUnique({
+        where: { slug: productId },
+      });
     }
+
+    if (!product) {
+      product = await this.prisma.product.findFirst({
+        where: {
+          OR: [
+            { slug: { contains: productId, mode: 'insensitive' } },
+            { title: { contains: productId, mode: 'insensitive' } },
+          ],
+        },
+      });
+    }
+
+    if (!product) {
+      throw new NotFoundException(`Product "${productId}" not found`);
+    }
+
+    const targetProductId = product.id;
 
     const existing = await this.prisma.wishlist.findUnique({
       where: {
         userId_productId: {
           userId,
-          productId,
+          productId: targetProductId,
         },
       },
     });
@@ -32,7 +50,7 @@ export class WishlistsService {
       });
 
       return {
-        productId,
+        productId: targetProductId,
         inWishlist: false,
         action: 'REMOVED',
         message: 'Product removed from your wishlist',
@@ -42,12 +60,12 @@ export class WishlistsService {
     await this.prisma.wishlist.create({
       data: {
         userId,
-        productId,
+        productId: targetProductId,
       },
     });
 
     return {
-      productId,
+      productId: targetProductId,
       inWishlist: true,
       action: 'ADDED',
       message: 'Product saved to your wishlist',
@@ -130,18 +148,47 @@ export class WishlistsService {
    * Customer: Quick check if a product is in the user's wishlist.
    */
   async check(userId: string, productId: string) {
-    const existing = await this.prisma.wishlist.findUnique({
+    let targetId = productId;
+    const existingDirect = await this.prisma.wishlist.findUnique({
       where: {
         userId_productId: {
           userId,
-          productId,
+          productId: targetId,
         },
       },
     });
 
+    if (existingDirect) {
+      return {
+        productId: targetId,
+        inWishlist: true,
+      };
+    }
+
+    // Try finding product by slug
+    const product = await this.prisma.product.findUnique({
+      where: { slug: productId },
+    });
+
+    if (product) {
+      targetId = product.id;
+      const existingBySlug = await this.prisma.wishlist.findUnique({
+        where: {
+          userId_productId: {
+            userId,
+            productId: targetId,
+          },
+        },
+      });
+      return {
+        productId: targetId,
+        inWishlist: !!existingBySlug,
+      };
+    }
+
     return {
       productId,
-      inWishlist: !!existing,
+      inWishlist: false,
     };
   }
 
