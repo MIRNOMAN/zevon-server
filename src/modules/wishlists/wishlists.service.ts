@@ -8,6 +8,7 @@ export class WishlistsService {
   /**
    * Customer: Toggle add/remove a product in wishlist.
    */
+  async toggle(userId: string, productId: string) {
     let product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -148,7 +149,7 @@ export class WishlistsService {
    * Customer: Quick check if a product is in the user's wishlist.
    */
   async check(userId: string, productId: string) {
-    let targetId = productId;
+    const targetId = productId;
     const existingDirect = await this.prisma.wishlist.findUnique({
       where: {
         userId_productId: {
@@ -171,17 +172,16 @@ export class WishlistsService {
     });
 
     if (product) {
-      targetId = product.id;
       const existingBySlug = await this.prisma.wishlist.findUnique({
         where: {
           userId_productId: {
             userId,
-            productId: targetId,
+            productId: product.id,
           },
         },
       });
       return {
-        productId: targetId,
+        productId: product.id,
         inWishlist: !!existingBySlug,
       };
     }
