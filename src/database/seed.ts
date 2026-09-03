@@ -420,6 +420,62 @@ async function main() {
   const productSeeds = [
     // ── MEN'S PRODUCTS ──────────────────────────────────────────
     {
+      title: 'Architectural Minimalist Heavyweight Tee',
+      slug: 'architectural-minimalist-heavyweight-tee',
+      description:
+        'Crafted from 100% super-combed organic cotton with double-needle ribbed collar and pre-shrunk wash. Designed for effortless streetwear drape.',
+      details: 'Boxy oversized fit, heavy drape, pre-shrunk organic fabric.',
+      fabricSpecs: '100% Super-Combed Organic Cotton, 380 GSM Heavy Interlock Weave.',
+      washCare: 'Cold machine wash inside out. Do not tumble dry.',
+      tags: ['Heavyweight', 'Oversized', 'Streetwear', 'Organic', 'Tee', 'T-Shirt', 'SS26'],
+      basePrice: 1850,
+      discountPrice: 1450,
+      categorySlug: 'men-t-shirts',
+      gender: 'MEN',
+      season: 'SS/26',
+      isFeatured: true,
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=900&auto=format&fit=crop&q=80',
+          altText: 'Architectural Minimalist Heavyweight Tee',
+          isPrimary: true,
+        },
+      ],
+      variants: [
+        { sku: 'ZEV-MEN-TEE-MIN-S', color: 'Washed Onyx', colorCode: '#1C1917', size: 'S', stock: 25 },
+        { sku: 'ZEV-MEN-TEE-MIN-M', color: 'Washed Onyx', colorCode: '#1C1917', size: 'M', stock: 40 },
+        { sku: 'ZEV-MEN-TEE-MIN-L', color: 'Washed Onyx', colorCode: '#1C1917', size: 'L', stock: 35 },
+      ],
+    },
+    {
+      title: 'Heavy French Terry Oversized Hoodie',
+      slug: 'heavy-french-terry-oversized-hoodie',
+      description:
+        'Ultra-dense 450 GSM unbrushed loopback cotton fleece. Features double-lined hood with zero drawstrings for clean minimalist aesthetic.',
+      details: 'Relaxed boxy fit, heavyweight drape, seamless crossover hood.',
+      fabricSpecs: '100% Organic Heavy French Terry Loopback Cotton (450 GSM).',
+      washCare: 'Machine wash cold with similar colors.',
+      tags: ['Hoodie', 'French Terry', 'Heavyweight', 'Oversized', 'Streetwear', 'Winter'],
+      basePrice: 3450,
+      discountPrice: 2950,
+      categorySlug: 'men-hoodies',
+      gender: 'MEN',
+      season: 'SS/26',
+      isFeatured: true,
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=900&auto=format&fit=crop&q=80',
+          altText: 'Heavy French Terry Oversized Hoodie',
+          isPrimary: true,
+        },
+      ],
+      variants: [
+        { sku: 'ZEV-MEN-HD-TER-M', color: 'Pitch Black', colorCode: '#0A0A0A', size: 'M', stock: 20 },
+        { sku: 'ZEV-MEN-HD-TER-L', color: 'Pitch Black', colorCode: '#0A0A0A', size: 'L', stock: 25 },
+        { sku: 'ZEV-MEN-HD-TER-XL', color: 'Pitch Black', colorCode: '#0A0A0A', size: 'XL', stock: 15 },
+      ],
+    },
+    {
       title: 'ZEVON 380 GSM Heavyweight Oversized Tee',
       slug: 'zevon-380-gsm-heavyweight-oversized-tee',
       description:
@@ -541,6 +597,61 @@ async function main() {
 
     // ── WOMEN'S PRODUCTS ────────────────────────────────────────
     {
+      title: 'Ribbed Knit Crop Top & Trouser Co-ord',
+      slug: 'ribbed-knit-crop-top-trouser-co-ord',
+      description:
+        'A versatile two-piece lounge and streetwear set made with premium stretch rib knit. Fluid wide-leg pants paired with sculpted top.',
+      details: 'Sculpting ribbed knit fabric with 4-way stretch and fluid drape.',
+      fabricSpecs: '92% Organic Cotton Rib, 8% Elastane (320 GSM).',
+      washCare: 'Machine wash cold on gentle cycle. Flat dry.',
+      tags: ['Co-ord', 'Ribbed Knit', 'Women', 'Minimalist', 'SS26'],
+      basePrice: 3200,
+      discountPrice: 2800,
+      categorySlug: 'women-coords',
+      gender: 'WOMEN',
+      season: 'SS/26',
+      isFeatured: true,
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900&auto=format&fit=crop&q=80',
+          altText: 'Ribbed Knit Crop Top & Trouser Co-ord',
+          isPrimary: true,
+        },
+      ],
+      variants: [
+        { sku: 'ZEV-WMN-CRD-RIB-XS', color: 'Espresso Brown', colorCode: '#3E2723', size: 'XS', stock: 18 },
+        { sku: 'ZEV-WMN-CRD-RIB-S', color: 'Espresso Brown', colorCode: '#3E2723', size: 'S', stock: 25 },
+        { sku: 'ZEV-WMN-CRD-RIB-M', color: 'Espresso Brown', colorCode: '#3E2723', size: 'M', stock: 20 },
+      ],
+    },
+    {
+      title: 'Pleated Wide-Leg Tonal Trousers',
+      slug: 'pleated-wide-leg-tonal-trousers',
+      description:
+        'Contemporary relaxed-fit wide-leg trousers featuring front double pleats and structured belt loops.',
+      details: 'Deep front pleats, slant pockets, tailored relaxed fit.',
+      fabricSpecs: '65% Tencel, 35% Rayon Twill (Fluid Stretch).',
+      washCare: 'Dry clean recommended.',
+      tags: ['Trousers', 'Pleated', 'Tailored', 'Women', 'Pants'],
+      basePrice: 2850,
+      discountPrice: 2450,
+      categorySlug: 'women-trousers',
+      gender: 'WOMEN',
+      season: 'SS/26',
+      isFeatured: true,
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900&auto=format&fit=crop&q=80',
+          altText: 'Pleated Wide-Leg Tonal Trousers',
+          isPrimary: true,
+        },
+      ],
+      variants: [
+        { sku: 'ZEV-WMN-PLEAT-S', color: 'Warm Taupe', colorCode: '#B38B6D', size: 'S', stock: 20 },
+        { sku: 'ZEV-WMN-PLEAT-M', color: 'Warm Taupe', colorCode: '#B38B6D', size: 'M', stock: 25 },
+      ],
+    },
+    {
       title: 'Monochrome Ribbed Knit Two-Piece Co-ord',
       slug: 'monochrome-ribbed-knit-two-piece-co-ord',
       description:
@@ -661,6 +772,33 @@ async function main() {
 
     // ── OUTERWEAR & ACCESSORIES ─────────────────────────────────
     {
+      title: 'Structured Oversized Trench Coat',
+      slug: 'structured-oversized-trench-coat',
+      description:
+        'Architectural double-breasted longline trench crafted with heavy gabardine cotton, tonal horn buttons, and wide storm flap.',
+      details: 'Longline silhouette, raglan sleeves, storm collar.',
+      fabricSpecs: '100% Water-Resistant Heavy Cotton Gabardine (420 GSM).',
+      washCare: 'Dry clean only.',
+      tags: ['Trench', 'Overcoat', 'Outerwear', 'Tailored', 'Winter'],
+      basePrice: 5200,
+      discountPrice: 4600,
+      categorySlug: 'trench-overcoats',
+      gender: 'UNISEX',
+      season: 'SS/26',
+      isFeatured: true,
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=900&auto=format&fit=crop&q=80',
+          altText: 'Structured Oversized Trench Coat',
+          isPrimary: true,
+        },
+      ],
+      variants: [
+        { sku: 'ZEV-OUT-TRN-KHK-M', color: 'Oatmeal Khaki', colorCode: '#C3B091', size: 'M', stock: 10 },
+        { sku: 'ZEV-OUT-TRN-KHK-L', color: 'Oatmeal Khaki', colorCode: '#C3B091', size: 'L', stock: 12 },
+      ],
+    },
+    {
       title: 'Structured Boxy Flight Bomber Jacket',
       slug: 'structured-boxy-flight-bomber-jacket',
       description:
@@ -695,7 +833,7 @@ async function main() {
       details: 'Curved visor, adjustable antique brass buckle strap.',
       fabricSpecs: '100% Heavy Enzyme-Washed Cotton Canvas.',
       washCare: 'Spot clean only.',
-      tags: ['Cap', 'Headwear', 'Accessories'],
+      tags: ['Cap', 'Headwear', 'Accessories', 'Vintage'],
       basePrice: 950,
       discountPrice: null,
       categorySlug: 'caps-headwear',
