@@ -7,7 +7,7 @@ describe('OutfitsService', () => {
   let service: OutfitsService;
   let prisma: any;
 
-  const mockPrismaService = {
+  const mockPrismaService: any = {
     outfit: {
       count: jest.fn(),
       findMany: jest.fn(),
@@ -37,7 +37,7 @@ describe('OutfitsService', () => {
       update: jest.fn(),
       create: jest.fn(),
     },
-    $transaction: jest.fn((callback) => callback(mockPrismaService)),
+    $transaction: jest.fn((callback: (tx: any) => any): any => callback(mockPrismaService)),
   };
 
   beforeEach(async () => {

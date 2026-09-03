@@ -19,6 +19,12 @@ export const CurrentUser = createParamDecorator(
     const request = ctx.switchToHttp().getRequest<Request>();
     const user = request.user as Record<string, unknown> | undefined;
 
-    return data ? user?.[data] : user;
+    if (!user) return undefined;
+
+    if (data === 'userId' || data === 'id') {
+      return user['id'] ?? user['userId'] ?? user['sub'];
+    }
+
+    return data ? user[data] : user;
   },
 );

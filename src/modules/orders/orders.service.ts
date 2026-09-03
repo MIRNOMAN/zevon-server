@@ -209,8 +209,8 @@ export class OrdersService {
       deliveryType: checkoutDto.deliveryType,
     });
 
-    const shippingCost = shippingCalc.shippingCost;
-    const shippingZoneId = shippingCalc.shippingZone?.id || null;
+    const shippingCost = Number(shippingCalc?.shippingCost ?? 0);
+    const shippingZoneId = shippingCalc?.shippingZone?.id || null;
 
     // 5. Validate and Apply Promo Coupon (if provided)
     let discountAmount = 0;
@@ -226,7 +226,7 @@ export class OrdersService {
       );
 
       discountAmount = couponValidation.discountAmount;
-      appliedCouponId = couponValidation.couponId;
+      appliedCouponId = couponValidation.couponId || (couponValidation as any).coupon?.id || null;
     }
 
     // 6. Calculate Final Total Amount
@@ -289,12 +289,12 @@ export class OrdersService {
           discountAmount: new Prisma.Decimal(discountAmount),
           shippingCost: new Prisma.Decimal(shippingCost),
           totalAmount: new Prisma.Decimal(totalAmount),
-          couponId: appliedCouponId,
-          shippingZoneId,
-          shippingAddress:
-            shippingAddressSnapshot as unknown as Prisma.InputJsonValue,
-          billingAddress:
-            billingAddressSnapshot as unknown as Prisma.InputJsonValue,
+          couponId: appliedCouponId || null,
+          shippingZoneId: shippingZoneId || null,
+          shippingAddress: JSON.parse(JSON.stringify(shippingAddressSnapshot)),
+          billingAddress: billingAddressSnapshot
+            ? JSON.parse(JSON.stringify(billingAddressSnapshot))
+            : JSON.parse(JSON.stringify(shippingAddressSnapshot)),
           notes: checkoutDto.notes || null,
           items: {
             create: itemsToOrder,

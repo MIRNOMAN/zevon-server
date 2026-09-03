@@ -425,9 +425,18 @@ async function main() {
       description:
         'Crafted from 100% super-combed organic cotton with double-needle ribbed collar and pre-shrunk wash. Designed for effortless streetwear drape.',
       details: 'Boxy oversized fit, heavy drape, pre-shrunk organic fabric.',
-      fabricSpecs: '100% Super-Combed Organic Cotton, 380 GSM Heavy Interlock Weave.',
+      fabricSpecs:
+        '100% Super-Combed Organic Cotton, 380 GSM Heavy Interlock Weave.',
       washCare: 'Cold machine wash inside out. Do not tumble dry.',
-      tags: ['Heavyweight', 'Oversized', 'Streetwear', 'Organic', 'Tee', 'T-Shirt', 'SS26'],
+      tags: [
+        'Heavyweight',
+        'Oversized',
+        'Streetwear',
+        'Organic',
+        'Tee',
+        'T-Shirt',
+        'SS26',
+      ],
       basePrice: 1850,
       discountPrice: 1450,
       categorySlug: 'men-t-shirts',
@@ -442,9 +451,27 @@ async function main() {
         },
       ],
       variants: [
-        { sku: 'ZEV-MEN-TEE-MIN-S', color: 'Washed Onyx', colorCode: '#1C1917', size: 'S', stock: 25 },
-        { sku: 'ZEV-MEN-TEE-MIN-M', color: 'Washed Onyx', colorCode: '#1C1917', size: 'M', stock: 40 },
-        { sku: 'ZEV-MEN-TEE-MIN-L', color: 'Washed Onyx', colorCode: '#1C1917', size: 'L', stock: 35 },
+        {
+          sku: 'ZEV-MEN-TEE-MIN-S',
+          color: 'Washed Onyx',
+          colorCode: '#1C1917',
+          size: 'S',
+          stock: 25,
+        },
+        {
+          sku: 'ZEV-MEN-TEE-MIN-M',
+          color: 'Washed Onyx',
+          colorCode: '#1C1917',
+          size: 'M',
+          stock: 40,
+        },
+        {
+          sku: 'ZEV-MEN-TEE-MIN-L',
+          color: 'Washed Onyx',
+          colorCode: '#1C1917',
+          size: 'L',
+          stock: 35,
+        },
       ],
     },
     {
@@ -455,7 +482,14 @@ async function main() {
       details: 'Relaxed boxy fit, heavyweight drape, seamless crossover hood.',
       fabricSpecs: '100% Organic Heavy French Terry Loopback Cotton (450 GSM).',
       washCare: 'Machine wash cold with similar colors.',
-      tags: ['Hoodie', 'French Terry', 'Heavyweight', 'Oversized', 'Streetwear', 'Winter'],
+      tags: [
+        'Hoodie',
+        'French Terry',
+        'Heavyweight',
+        'Oversized',
+        'Streetwear',
+        'Winter',
+      ],
       basePrice: 3450,
       discountPrice: 2950,
       categorySlug: 'men-hoodies',
@@ -470,9 +504,27 @@ async function main() {
         },
       ],
       variants: [
-        { sku: 'ZEV-MEN-HD-TER-M', color: 'Pitch Black', colorCode: '#0A0A0A', size: 'M', stock: 20 },
-        { sku: 'ZEV-MEN-HD-TER-L', color: 'Pitch Black', colorCode: '#0A0A0A', size: 'L', stock: 25 },
-        { sku: 'ZEV-MEN-HD-TER-XL', color: 'Pitch Black', colorCode: '#0A0A0A', size: 'XL', stock: 15 },
+        {
+          sku: 'ZEV-MEN-HD-TER-M',
+          color: 'Pitch Black',
+          colorCode: '#0A0A0A',
+          size: 'M',
+          stock: 20,
+        },
+        {
+          sku: 'ZEV-MEN-HD-TER-L',
+          color: 'Pitch Black',
+          colorCode: '#0A0A0A',
+          size: 'L',
+          stock: 25,
+        },
+        {
+          sku: 'ZEV-MEN-HD-TER-XL',
+          color: 'Pitch Black',
+          colorCode: '#0A0A0A',
+          size: 'XL',
+          stock: 15,
+        },
       ],
     },
     {
@@ -481,7 +533,8 @@ async function main() {
       description:
         'Engineered with 380 GSM super-combed organic cotton. Designed with a structured boxy cut, drop-shoulder silhouette, and reinforced ribbed collar.',
       details: 'Boxy oversized fit, heavy drape, pre-shrunk organic fabric.',
-      fabricSpecs: '100% Super-Combed Organic Cotton, 380 GSM Heavy Interlock Weave.',
+      fabricSpecs:
+        '100% Super-Combed Organic Cotton, 380 GSM Heavy Interlock Weave.',
       washCare: 'Cold machine wash inside out. Do not tumble dry.',
       tags: ['Heavyweight', 'Oversized', 'Streetwear', 'Organic', 'SS26'],
       basePrice: 1850,
@@ -503,11 +556,41 @@ async function main() {
         },
       ],
       variants: [
-        { sku: 'ZEV-MEN-TEE-BLK-S', color: 'Onyx Black', colorCode: '#111111', size: 'S', stock: 25 },
-        { sku: 'ZEV-MEN-TEE-BLK-M', color: 'Onyx Black', colorCode: '#111111', size: 'M', stock: 40 },
-        { sku: 'ZEV-MEN-TEE-BLK-L', color: 'Onyx Black', colorCode: '#111111', size: 'L', stock: 35 },
-        { sku: 'ZEV-MEN-TEE-WHT-M', color: 'Chalk White', colorCode: '#F4F4F0', size: 'M', stock: 30 },
-        { sku: 'ZEV-MEN-TEE-WHT-L', color: 'Chalk White', colorCode: '#F4F4F0', size: 'L', stock: 25 },
+        {
+          sku: 'ZEV-MEN-TEE-BLK-S',
+          color: 'Onyx Black',
+          colorCode: '#111111',
+          size: 'S',
+          stock: 25,
+        },
+        {
+          sku: 'ZEV-MEN-TEE-BLK-M',
+          color: 'Onyx Black',
+          colorCode: '#111111',
+          size: 'M',
+          stock: 40,
+        },
+        {
+          sku: 'ZEV-MEN-TEE-BLK-L',
+          color: 'Onyx Black',
+          colorCode: '#111111',
+          size: 'L',
+          stock: 35,
+        },
+        {
+          sku: 'ZEV-MEN-TEE-WHT-M',
+          color: 'Chalk White',
+          colorCode: '#F4F4F0',
+          size: 'M',
+          stock: 30,
+        },
+        {
+          sku: 'ZEV-MEN-TEE-WHT-L',
+          color: 'Chalk White',
+          colorCode: '#F4F4F0',
+          size: 'L',
+          stock: 25,
+        },
       ],
     },
     {
@@ -515,7 +598,8 @@ async function main() {
       slug: 'minimalist-acid-wash-drop-shoulder-hoodie',
       description:
         '450 GSM luxury brushed fleece hoodie with double-layered crossover hood and hidden side-seam pockets.',
-      details: 'Drop shoulder, ribbed cuffs and hem, custom acid wash treatment.',
+      details:
+        'Drop shoulder, ribbed cuffs and hem, custom acid wash treatment.',
       fabricSpecs: '80% Organic Cotton, 20% Recycled Poly Fleece (450 GSM).',
       washCare: 'Machine wash cold with similar colors.',
       tags: ['Hoodie', 'Fleece', 'Acid Wash', 'Winter', 'Streetwear'],
@@ -533,9 +617,27 @@ async function main() {
         },
       ],
       variants: [
-        { sku: 'ZEV-MEN-HD-CHR-M', color: 'Charcoal Wash', colorCode: '#333333', size: 'M', stock: 20 },
-        { sku: 'ZEV-MEN-HD-CHR-L', color: 'Charcoal Wash', colorCode: '#333333', size: 'L', stock: 25 },
-        { sku: 'ZEV-MEN-HD-CHR-XL', color: 'Charcoal Wash', colorCode: '#333333', size: 'XL', stock: 15 },
+        {
+          sku: 'ZEV-MEN-HD-CHR-M',
+          color: 'Charcoal Wash',
+          colorCode: '#333333',
+          size: 'M',
+          stock: 20,
+        },
+        {
+          sku: 'ZEV-MEN-HD-CHR-L',
+          color: 'Charcoal Wash',
+          colorCode: '#333333',
+          size: 'L',
+          stock: 25,
+        },
+        {
+          sku: 'ZEV-MEN-HD-CHR-XL',
+          color: 'Charcoal Wash',
+          colorCode: '#333333',
+          size: 'XL',
+          stock: 15,
+        },
       ],
     },
     {
@@ -561,10 +663,34 @@ async function main() {
         },
       ],
       variants: [
-        { sku: 'ZEV-MEN-CRG-OLV-30', color: 'Olive Green', colorCode: '#4B5320', size: 'M', stock: 18 },
-        { sku: 'ZEV-MEN-CRG-OLV-32', color: 'Olive Green', colorCode: '#4B5320', size: 'L', stock: 22 },
-        { sku: 'ZEV-MEN-CRG-BLK-30', color: 'Matte Black', colorCode: '#1A1A1A', size: 'M', stock: 20 },
-        { sku: 'ZEV-MEN-CRG-BLK-32', color: 'Matte Black', colorCode: '#1A1A1A', size: 'L', stock: 18 },
+        {
+          sku: 'ZEV-MEN-CRG-OLV-30',
+          color: 'Olive Green',
+          colorCode: '#4B5320',
+          size: 'M',
+          stock: 18,
+        },
+        {
+          sku: 'ZEV-MEN-CRG-OLV-32',
+          color: 'Olive Green',
+          colorCode: '#4B5320',
+          size: 'L',
+          stock: 22,
+        },
+        {
+          sku: 'ZEV-MEN-CRG-BLK-30',
+          color: 'Matte Black',
+          colorCode: '#1A1A1A',
+          size: 'M',
+          stock: 20,
+        },
+        {
+          sku: 'ZEV-MEN-CRG-BLK-32',
+          color: 'Matte Black',
+          colorCode: '#1A1A1A',
+          size: 'L',
+          stock: 18,
+        },
       ],
     },
     {
@@ -572,7 +698,8 @@ async function main() {
       slug: 'monochrome-heavy-knit-co-ord-set',
       description:
         'Two-piece matching waffle knit shirt and relaxed shorts set engineered for breathable luxury and everyday ease.',
-      details: 'Relaxed silhouette, elasticated waistband, matching tonal buttons.',
+      details:
+        'Relaxed silhouette, elasticated waistband, matching tonal buttons.',
       fabricSpecs: '100% Combed Compact Cotton Waffle Knit.',
       washCare: 'Hand wash or delicate cycle.',
       tags: ['Co-ord', 'Knitwear', 'Set', 'Luxury'],
@@ -590,8 +717,20 @@ async function main() {
         },
       ],
       variants: [
-        { sku: 'ZEV-MEN-CRD-SND-M', color: 'Sand Dune', colorCode: '#C2B280', size: 'M', stock: 15 },
-        { sku: 'ZEV-MEN-CRD-SND-L', color: 'Sand Dune', colorCode: '#C2B280', size: 'L', stock: 15 },
+        {
+          sku: 'ZEV-MEN-CRD-SND-M',
+          color: 'Sand Dune',
+          colorCode: '#C2B280',
+          size: 'M',
+          stock: 15,
+        },
+        {
+          sku: 'ZEV-MEN-CRD-SND-L',
+          color: 'Sand Dune',
+          colorCode: '#C2B280',
+          size: 'L',
+          stock: 15,
+        },
       ],
     },
 
@@ -601,7 +740,8 @@ async function main() {
       slug: 'ribbed-knit-crop-top-trouser-co-ord',
       description:
         'A versatile two-piece lounge and streetwear set made with premium stretch rib knit. Fluid wide-leg pants paired with sculpted top.',
-      details: 'Sculpting ribbed knit fabric with 4-way stretch and fluid drape.',
+      details:
+        'Sculpting ribbed knit fabric with 4-way stretch and fluid drape.',
       fabricSpecs: '92% Organic Cotton Rib, 8% Elastane (320 GSM).',
       washCare: 'Machine wash cold on gentle cycle. Flat dry.',
       tags: ['Co-ord', 'Ribbed Knit', 'Women', 'Minimalist', 'SS26'],
@@ -619,9 +759,27 @@ async function main() {
         },
       ],
       variants: [
-        { sku: 'ZEV-WMN-CRD-RIB-XS', color: 'Espresso Brown', colorCode: '#3E2723', size: 'XS', stock: 18 },
-        { sku: 'ZEV-WMN-CRD-RIB-S', color: 'Espresso Brown', colorCode: '#3E2723', size: 'S', stock: 25 },
-        { sku: 'ZEV-WMN-CRD-RIB-M', color: 'Espresso Brown', colorCode: '#3E2723', size: 'M', stock: 20 },
+        {
+          sku: 'ZEV-WMN-CRD-RIB-XS',
+          color: 'Espresso Brown',
+          colorCode: '#3E2723',
+          size: 'XS',
+          stock: 18,
+        },
+        {
+          sku: 'ZEV-WMN-CRD-RIB-S',
+          color: 'Espresso Brown',
+          colorCode: '#3E2723',
+          size: 'S',
+          stock: 25,
+        },
+        {
+          sku: 'ZEV-WMN-CRD-RIB-M',
+          color: 'Espresso Brown',
+          colorCode: '#3E2723',
+          size: 'M',
+          stock: 20,
+        },
       ],
     },
     {
@@ -647,8 +805,20 @@ async function main() {
         },
       ],
       variants: [
-        { sku: 'ZEV-WMN-PLEAT-S', color: 'Warm Taupe', colorCode: '#B38B6D', size: 'S', stock: 20 },
-        { sku: 'ZEV-WMN-PLEAT-M', color: 'Warm Taupe', colorCode: '#B38B6D', size: 'M', stock: 25 },
+        {
+          sku: 'ZEV-WMN-PLEAT-S',
+          color: 'Warm Taupe',
+          colorCode: '#B38B6D',
+          size: 'S',
+          stock: 20,
+        },
+        {
+          sku: 'ZEV-WMN-PLEAT-M',
+          color: 'Warm Taupe',
+          colorCode: '#B38B6D',
+          size: 'M',
+          stock: 25,
+        },
       ],
     },
     {
@@ -656,7 +826,8 @@ async function main() {
       slug: 'monochrome-ribbed-knit-two-piece-co-ord',
       description:
         'Sculpted square-neck sleeveless top paired with flattering high-rise wide-leg ribbed knit trousers.',
-      details: 'Sculpting ribbed knit fabric with 4-way stretch and fluid drape.',
+      details:
+        'Sculpting ribbed knit fabric with 4-way stretch and fluid drape.',
       fabricSpecs: '92% Organic Cotton Rib, 8% Elastane (340 GSM).',
       washCare: 'Machine wash cold on gentle cycle. Flat dry.',
       tags: ['Co-ord', 'Ribbed Knit', 'Women', 'Minimalist', 'SS26'],
@@ -679,11 +850,41 @@ async function main() {
         },
       ],
       variants: [
-        { sku: 'ZEV-WMN-CRD-OAT-XS', color: 'Oatmeal Heather', colorCode: '#DCD7D0', size: 'XS', stock: 18 },
-        { sku: 'ZEV-WMN-CRD-OAT-S', color: 'Oatmeal Heather', colorCode: '#DCD7D0', size: 'S', stock: 30 },
-        { sku: 'ZEV-WMN-CRD-OAT-M', color: 'Oatmeal Heather', colorCode: '#DCD7D0', size: 'M', stock: 25 },
-        { sku: 'ZEV-WMN-CRD-BLK-S', color: 'Midnight Black', colorCode: '#0D0D0D', size: 'S', stock: 20 },
-        { sku: 'ZEV-WMN-CRD-BLK-M', color: 'Midnight Black', colorCode: '#0D0D0D', size: 'M', stock: 22 },
+        {
+          sku: 'ZEV-WMN-CRD-OAT-XS',
+          color: 'Oatmeal Heather',
+          colorCode: '#DCD7D0',
+          size: 'XS',
+          stock: 18,
+        },
+        {
+          sku: 'ZEV-WMN-CRD-OAT-S',
+          color: 'Oatmeal Heather',
+          colorCode: '#DCD7D0',
+          size: 'S',
+          stock: 30,
+        },
+        {
+          sku: 'ZEV-WMN-CRD-OAT-M',
+          color: 'Oatmeal Heather',
+          colorCode: '#DCD7D0',
+          size: 'M',
+          stock: 25,
+        },
+        {
+          sku: 'ZEV-WMN-CRD-BLK-S',
+          color: 'Midnight Black',
+          colorCode: '#0D0D0D',
+          size: 'S',
+          stock: 20,
+        },
+        {
+          sku: 'ZEV-WMN-CRD-BLK-M',
+          color: 'Midnight Black',
+          colorCode: '#0D0D0D',
+          size: 'M',
+          stock: 22,
+        },
       ],
     },
     {
@@ -709,9 +910,27 @@ async function main() {
         },
       ],
       variants: [
-        { sku: 'ZEV-WMN-DRS-SLT-S', color: 'Slate Grey', colorCode: '#708090', size: 'S', stock: 15 },
-        { sku: 'ZEV-WMN-DRS-SLT-M', color: 'Slate Grey', colorCode: '#708090', size: 'M', stock: 20 },
-        { sku: 'ZEV-WMN-DRS-BLK-S', color: 'Pure Noir', colorCode: '#0A0A0A', size: 'S', stock: 18 },
+        {
+          sku: 'ZEV-WMN-DRS-SLT-S',
+          color: 'Slate Grey',
+          colorCode: '#708090',
+          size: 'S',
+          stock: 15,
+        },
+        {
+          sku: 'ZEV-WMN-DRS-SLT-M',
+          color: 'Slate Grey',
+          colorCode: '#708090',
+          size: 'M',
+          stock: 20,
+        },
+        {
+          sku: 'ZEV-WMN-DRS-BLK-S',
+          color: 'Pure Noir',
+          colorCode: '#0A0A0A',
+          size: 'S',
+          stock: 18,
+        },
       ],
     },
     {
@@ -719,7 +938,8 @@ async function main() {
       slug: 'sculpted-organic-cotton-baby-crop-top',
       description:
         'Fitted heavyweight baby tee with high crew neck and double-stitched raw hem detail.',
-      details: 'Form-flattering crop cut, super soft pre-washed organic cotton.',
+      details:
+        'Form-flattering crop cut, super soft pre-washed organic cotton.',
       fabricSpecs: '95% Organic Cotton, 5% Spandex (280 GSM).',
       washCare: 'Machine wash cold, lay flat to dry.',
       tags: ['Crop Top', 'Baby Tee', 'Essentials', 'Organic'],
@@ -737,9 +957,27 @@ async function main() {
         },
       ],
       variants: [
-        { sku: 'ZEV-WMN-TOP-WHT-S', color: 'Pure White', colorCode: '#FFFFFF', size: 'S', stock: 25 },
-        { sku: 'ZEV-WMN-TOP-WHT-M', color: 'Pure White', colorCode: '#FFFFFF', size: 'M', stock: 25 },
-        { sku: 'ZEV-WMN-TOP-BLK-S', color: 'Pitch Black', colorCode: '#111111', size: 'S', stock: 25 },
+        {
+          sku: 'ZEV-WMN-TOP-WHT-S',
+          color: 'Pure White',
+          colorCode: '#FFFFFF',
+          size: 'S',
+          stock: 25,
+        },
+        {
+          sku: 'ZEV-WMN-TOP-WHT-M',
+          color: 'Pure White',
+          colorCode: '#FFFFFF',
+          size: 'M',
+          stock: 25,
+        },
+        {
+          sku: 'ZEV-WMN-TOP-BLK-S',
+          color: 'Pitch Black',
+          colorCode: '#111111',
+          size: 'S',
+          stock: 25,
+        },
       ],
     },
     {
@@ -765,8 +1003,20 @@ async function main() {
         },
       ],
       variants: [
-        { sku: 'ZEV-WMN-TRS-TAU-S', color: 'Warm Taupe', colorCode: '#B38B6D', size: 'S', stock: 15 },
-        { sku: 'ZEV-WMN-TRS-TAU-M', color: 'Warm Taupe', colorCode: '#B38B6D', size: 'M', stock: 20 },
+        {
+          sku: 'ZEV-WMN-TRS-TAU-S',
+          color: 'Warm Taupe',
+          colorCode: '#B38B6D',
+          size: 'S',
+          stock: 15,
+        },
+        {
+          sku: 'ZEV-WMN-TRS-TAU-M',
+          color: 'Warm Taupe',
+          colorCode: '#B38B6D',
+          size: 'M',
+          stock: 20,
+        },
       ],
     },
 
@@ -794,8 +1044,20 @@ async function main() {
         },
       ],
       variants: [
-        { sku: 'ZEV-OUT-TRN-KHK-M', color: 'Oatmeal Khaki', colorCode: '#C3B091', size: 'M', stock: 10 },
-        { sku: 'ZEV-OUT-TRN-KHK-L', color: 'Oatmeal Khaki', colorCode: '#C3B091', size: 'L', stock: 12 },
+        {
+          sku: 'ZEV-OUT-TRN-KHK-M',
+          color: 'Oatmeal Khaki',
+          colorCode: '#C3B091',
+          size: 'M',
+          stock: 10,
+        },
+        {
+          sku: 'ZEV-OUT-TRN-KHK-L',
+          color: 'Oatmeal Khaki',
+          colorCode: '#C3B091',
+          size: 'L',
+          stock: 12,
+        },
       ],
     },
     {
@@ -821,8 +1083,20 @@ async function main() {
         },
       ],
       variants: [
-        { sku: 'ZEV-OUT-BMB-BLK-M', color: 'Tactical Black', colorCode: '#111111', size: 'M', stock: 12 },
-        { sku: 'ZEV-OUT-BMB-BLK-L', color: 'Tactical Black', colorCode: '#111111', size: 'L', stock: 15 },
+        {
+          sku: 'ZEV-OUT-BMB-BLK-M',
+          color: 'Tactical Black',
+          colorCode: '#111111',
+          size: 'M',
+          stock: 12,
+        },
+        {
+          sku: 'ZEV-OUT-BMB-BLK-L',
+          color: 'Tactical Black',
+          colorCode: '#111111',
+          size: 'L',
+          stock: 15,
+        },
       ],
     },
     {
@@ -848,7 +1122,13 @@ async function main() {
         },
       ],
       variants: [
-        { sku: 'ZEV-ACC-CAP-WAS-OS', color: 'Washed Charcoal', colorCode: '#404040', size: 'OS', stock: 50 },
+        {
+          sku: 'ZEV-ACC-CAP-WAS-OS',
+          color: 'Washed Charcoal',
+          colorCode: '#404040',
+          size: 'OS',
+          stock: 50,
+        },
       ],
     },
   ];
@@ -884,7 +1164,7 @@ async function main() {
 
       // Insert images
       for (let i = 0; i < images.length; i++) {
-        const img = images[i]!;
+        const img = images[i];
         await prisma.productImage.create({
           data: {
             productId: createdProd.id,
@@ -921,13 +1201,33 @@ async function main() {
 
   // Create sample verified customer users for authentic product reviews
   const customerSeeds = [
-    { email: 'tanvir@example.com', name: 'Tanvir Ahmed', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' },
-    { email: 'nafis@example.com', name: 'Nafis Fuad', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
-    { email: 'sumaiya@example.com', name: 'Sumaiya Rahman', avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80' },
-    { email: 'abrar@example.com', name: 'Abrar Chowdhury', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' },
+    {
+      email: 'tanvir@example.com',
+      name: 'Tanvir Ahmed',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    },
+    {
+      email: 'nafis@example.com',
+      name: 'Nafis Fuad',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    },
+    {
+      email: 'sumaiya@example.com',
+      name: 'Sumaiya Rahman',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+    },
+    {
+      email: 'abrar@example.com',
+      name: 'Abrar Chowdhury',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    },
   ];
 
-  const customers: any[] = [];
+  const customers = [];
   for (const c of customerSeeds) {
     const user = await prisma.user.upsert({
       where: { email: c.email },
@@ -943,75 +1243,147 @@ async function main() {
   }
 
   // Seed distinct, tailored customer reviews per product
-  const hoodie = await prisma.product.findUnique({ where: { slug: 'heavy-french-terry-oversized-hoodie' } });
-  const tee = await prisma.product.findUnique({ where: { slug: 'architectural-minimalist-heavyweight-tee' } });
-  const coord = await prisma.product.findUnique({ where: { slug: 'ribbed-knit-crop-top-trouser-co-ord' } });
-  const trouser = await prisma.product.findUnique({ where: { slug: 'pleated-wide-leg-tonal-trousers' } });
-
-  // Clean old reviews
-  await prisma.review.deleteMany({});
+  const hoodie = await prisma.product.findUnique({
+    where: { slug: 'heavy-french-terry-oversized-hoodie' },
+  });
+  const tee = await prisma.product.findUnique({
+    where: { slug: 'architectural-minimalist-heavyweight-tee' },
+  });
+  const coord = await prisma.product.findUnique({
+    where: { slug: 'ribbed-knit-crop-top-trouser-co-ord' },
+  });
+  const trouser = await prisma.product.findUnique({
+    where: { slug: 'pleated-wide-leg-tonal-trousers' },
+  });
 
   if (hoodie && customers[0]) {
-    await prisma.review.create({
-      data: {
+    await prisma.review.upsert({
+      where: {
+        userId_productId: {
+          userId: customers[0].id,
+          productId: hoodie.id,
+        },
+      },
+      update: {
+        rating: 5,
+        comment:
+          'Best loopback French terry hoodie in BD! 420 GSM weight gives a dramatic, heavyweight drape.',
+        isVerifiedPurchase: true,
+      },
+      create: {
         userId: customers[0].id,
         productId: hoodie.id,
         rating: 5,
-        comment: 'Best loopback French terry hoodie in BD! 420 GSM weight gives a dramatic, heavyweight drape.',
+        comment:
+          'Best loopback French terry hoodie in BD! 420 GSM weight gives a dramatic, heavyweight drape.',
         isVerifiedPurchase: true,
       },
     });
   }
 
   if (hoodie && customers[1]) {
-    await prisma.review.create({
-      data: {
+    await prisma.review.upsert({
+      where: {
+        userId_productId: {
+          userId: customers[1].id,
+          productId: hoodie.id,
+        },
+      },
+      update: {
+        rating: 5,
+        comment:
+          'Double-layered architectural hood sits upright perfectly without flopping. Premium matte silver eyelets.',
+        isVerifiedPurchase: true,
+      },
+      create: {
         userId: customers[1].id,
         productId: hoodie.id,
         rating: 5,
-        comment: 'Double-layered architectural hood sits upright perfectly without flopping. Premium matte silver eyelets.',
+        comment:
+          'Double-layered architectural hood sits upright perfectly without flopping. Premium matte silver eyelets.',
         isVerifiedPurchase: true,
       },
     });
   }
 
   if (tee && customers[2]) {
-    await prisma.review.create({
-      data: {
+    await prisma.review.upsert({
+      where: {
+        userId_productId: {
+          userId: customers[2].id,
+          productId: tee.id,
+        },
+      },
+      update: {
+        rating: 5,
+        comment:
+          'The 380 GSM super-combed cotton tee is insane. Drop shoulders and tight collar rib that does not stretch.',
+        isVerifiedPurchase: true,
+      },
+      create: {
         userId: customers[2].id,
         productId: tee.id,
         rating: 5,
-        comment: 'The 380 GSM super-combed cotton tee is insane. Drop shoulders and tight collar rib that does not stretch.',
+        comment:
+          'The 380 GSM super-combed cotton tee is insane. Drop shoulders and tight collar rib that does not stretch.',
         isVerifiedPurchase: true,
       },
     });
   }
 
   if (coord && customers[3]) {
-    await prisma.review.create({
-      data: {
+    await prisma.review.upsert({
+      where: {
+        userId_productId: {
+          userId: customers[3].id,
+          productId: coord.id,
+        },
+      },
+      update: {
+        rating: 5,
+        comment:
+          'The ribbed knit stretch is luxurious and breathable for evening dinners. Fits true to size.',
+        isVerifiedPurchase: true,
+      },
+      create: {
         userId: customers[3].id,
         productId: coord.id,
         rating: 5,
-        comment: 'The ribbed knit stretch is luxurious and breathable for evening dinners. Fits true to size.',
+        comment:
+          'The ribbed knit stretch is luxurious and breathable for evening dinners. Fits true to size.',
         isVerifiedPurchase: true,
       },
     });
   }
 
   if (trouser && customers[0]) {
-    await prisma.review.create({
-      data: {
+    await prisma.review.upsert({
+      where: {
+        userId_productId: {
+          userId: customers[0].id,
+          productId: trouser.id,
+        },
+      },
+      update: {
+        rating: 4,
+        comment:
+          'Sharp double pleats and clean drape over sneakers. Love the concealed side waistband tab.',
+        isVerifiedPurchase: true,
+      },
+      create: {
         userId: customers[0].id,
         productId: trouser.id,
         rating: 4,
-        comment: 'Sharp double pleats and clean drape over sneakers. Love the concealed side waistband tab.',
+        comment:
+          'Sharp double pleats and clean drape over sneakers. Love the concealed side waistband tab.',
         isVerifiedPurchase: true,
       },
     });
   }
 
-  console.log(`✅ Default products seeded (${productSeeds.length} products with variants, galleries, and verified customer reviews)`);
+  console.log(
+    `✅ Default products seeded (${productSeeds.length} products with variants, galleries, and verified customer reviews)`,
+  );
 }
 
 main()
