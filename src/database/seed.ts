@@ -919,7 +919,84 @@ async function main() {
     }
   }
 
-  console.log(`✅ Default products seeded (${productSeeds.length} products with variants and galleries)`);
+  // Create sample verified customer users for authentic product reviews
+  const customerSeeds = [
+    { email: 'tanvir@example.com', name: 'Tanvir Ahmed', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' },
+    { email: 'nafis@example.com', name: 'Nafis Fuad', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
+    { email: 'sumaiya@example.com', name: 'Sumaiya Rahman', avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80' },
+    { email: 'abrar@example.com', name: 'Abrar Chowdhury', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' },
+  ];
+
+  const customers: any[] = [];
+  for (const c of customerSeeds) {
+    const user = await prisma.user.upsert({
+      where: { email: c.email },
+      update: { name: c.name, avatarUrl: c.avatarUrl },
+      create: {
+        email: c.email,
+        name: c.name,
+        avatarUrl: c.avatarUrl,
+        password: hashedPassword,
+      },
+    });
+    customers.push(user);
+  }
+
+  // Seed verified customer reviews for each product
+  const allDbProducts = await prisma.product.findMany();
+  const sampleReviewTemplates = [
+    {
+      rating: 5,
+      comment:
+        'The fabric weight is unmatched! Definitely a true 380+ GSM. The boxy drape sits perfectly on shoulders. Highly recommended for streetwear lovers in Dhaka.',
+    },
+    {
+      rating: 5,
+      comment:
+        'Best streetwear piece I have bought in Bangladesh. Minimalist cut with zero loose threads and the loopback cotton fleece feels ultra premium.',
+    },
+    {
+      rating: 5,
+      comment:
+        'Love the fit and the heavy texture! Fast delivery within 24 hours in Dhanmondi. Will order more from the SS/26 drop.',
+    },
+    {
+      rating: 4,
+      comment:
+        'Solid construction and great packaging with custom ZEVON dust bag. Fits true to size for an architectural oversized look.',
+    },
+  ];
+
+  for (const prod of allDbProducts) {
+    for (let i = 0; i < customers.length; i++) {
+      const cust = customers[i]!;
+      const tpl = sampleReviewTemplates[i % sampleReviewTemplates.length]!;
+
+      await prisma.review.upsert({
+        where: {
+          userId_productId: {
+            userId: cust.id,
+            productId: prod.id,
+          },
+        },
+        update: {
+          rating: tpl.rating,
+          comment: tpl.comment,
+          isVerifiedPurchase: true,
+        },
+        create: {
+          userId: cust.id,
+          productId: prod.id,
+          rating: tpl.rating,
+          comment: tpl.comment,
+          isVerifiedPurchase: true,
+          images: [],
+        },
+      });
+    }
+  }
+
+  console.log(`✅ Default products seeded (${productSeeds.length} products with variants, galleries, and verified customer reviews)`);
 }
 
 main()
