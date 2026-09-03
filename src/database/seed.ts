@@ -942,58 +942,73 @@ async function main() {
     customers.push(user);
   }
 
-  // Seed verified customer reviews for each product
-  const allDbProducts = await prisma.product.findMany();
-  const sampleReviewTemplates = [
-    {
-      rating: 5,
-      comment:
-        'The fabric weight is unmatched! Definitely a true 380+ GSM. The boxy drape sits perfectly on shoulders. Highly recommended for streetwear lovers in Dhaka.',
-    },
-    {
-      rating: 5,
-      comment:
-        'Best streetwear piece I have bought in Bangladesh. Minimalist cut with zero loose threads and the loopback cotton fleece feels ultra premium.',
-    },
-    {
-      rating: 5,
-      comment:
-        'Love the fit and the heavy texture! Fast delivery within 24 hours in Dhanmondi. Will order more from the SS/26 drop.',
-    },
-    {
-      rating: 4,
-      comment:
-        'Solid construction and great packaging with custom ZEVON dust bag. Fits true to size for an architectural oversized look.',
-    },
-  ];
+  // Seed distinct, tailored customer reviews per product
+  const hoodie = await prisma.product.findUnique({ where: { slug: 'heavy-french-terry-oversized-hoodie' } });
+  const tee = await prisma.product.findUnique({ where: { slug: 'architectural-minimalist-heavyweight-tee' } });
+  const coord = await prisma.product.findUnique({ where: { slug: 'ribbed-knit-crop-top-trouser-co-ord' } });
+  const trouser = await prisma.product.findUnique({ where: { slug: 'pleated-wide-leg-tonal-trousers' } });
 
-  for (const prod of allDbProducts) {
-    for (let i = 0; i < customers.length; i++) {
-      const cust = customers[i]!;
-      const tpl = sampleReviewTemplates[i % sampleReviewTemplates.length]!;
+  // Clean old reviews
+  await prisma.review.deleteMany({});
 
-      await prisma.review.upsert({
-        where: {
-          userId_productId: {
-            userId: cust.id,
-            productId: prod.id,
-          },
-        },
-        update: {
-          rating: tpl.rating,
-          comment: tpl.comment,
-          isVerifiedPurchase: true,
-        },
-        create: {
-          userId: cust.id,
-          productId: prod.id,
-          rating: tpl.rating,
-          comment: tpl.comment,
-          isVerifiedPurchase: true,
-          images: [],
-        },
-      });
-    }
+  if (hoodie && customers[0]) {
+    await prisma.review.create({
+      data: {
+        userId: customers[0].id,
+        productId: hoodie.id,
+        rating: 5,
+        comment: 'Best loopback French terry hoodie in BD! 420 GSM weight gives a dramatic, heavyweight drape.',
+        isVerifiedPurchase: true,
+      },
+    });
+  }
+
+  if (hoodie && customers[1]) {
+    await prisma.review.create({
+      data: {
+        userId: customers[1].id,
+        productId: hoodie.id,
+        rating: 5,
+        comment: 'Double-layered architectural hood sits upright perfectly without flopping. Premium matte silver eyelets.',
+        isVerifiedPurchase: true,
+      },
+    });
+  }
+
+  if (tee && customers[2]) {
+    await prisma.review.create({
+      data: {
+        userId: customers[2].id,
+        productId: tee.id,
+        rating: 5,
+        comment: 'The 380 GSM super-combed cotton tee is insane. Drop shoulders and tight collar rib that does not stretch.',
+        isVerifiedPurchase: true,
+      },
+    });
+  }
+
+  if (coord && customers[3]) {
+    await prisma.review.create({
+      data: {
+        userId: customers[3].id,
+        productId: coord.id,
+        rating: 5,
+        comment: 'The ribbed knit stretch is luxurious and breathable for evening dinners. Fits true to size.',
+        isVerifiedPurchase: true,
+      },
+    });
+  }
+
+  if (trouser && customers[0]) {
+    await prisma.review.create({
+      data: {
+        userId: customers[0].id,
+        productId: trouser.id,
+        rating: 4,
+        comment: 'Sharp double pleats and clean drape over sneakers. Love the concealed side waistband tab.',
+        isVerifiedPurchase: true,
+      },
+    });
   }
 
   console.log(`✅ Default products seeded (${productSeeds.length} products with variants, galleries, and verified customer reviews)`);

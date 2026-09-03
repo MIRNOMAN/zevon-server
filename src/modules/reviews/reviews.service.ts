@@ -25,20 +25,28 @@ export class ReviewsService {
     const { productId, rating, comment, images } = createReviewDto;
 
     // 1. Verify product exists
-    const product = await this.prisma.product.findUnique({
+    let product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
 
     if (!product) {
-      throw new NotFoundException(`Product with ID "${productId}" not found`);
+      product = await this.prisma.product.findUnique({
+        where: { slug: productId },
+      });
     }
+
+    if (!product) {
+      throw new NotFoundException(`Product "${productId}" not found`);
+    }
+
+    const targetProductId = product.id;
 
     // 2. Check if user has already reviewed this product
     const existingReview = await this.prisma.review.findUnique({
       where: {
         userId_productId: {
           userId,
-          productId,
+          productId: targetProductId,
         },
       },
     });
@@ -49,34 +57,30 @@ export class ReviewsService {
       );
     }
 
-    // 3. Enforce Verified Purchase Check (Delivered Order Item verification)
+    // 3. Check Verified Purchase Status
     const deliveredOrder = await this.prisma.order.findFirst({
       where: {
         userId,
         status: OrderStatus.DELIVERED,
         items: {
           some: {
-            productId,
+            productId: targetProductId,
           },
         },
       },
     });
 
-    if (!deliveredOrder) {
-      throw new ForbiddenException(
-        'Verified Purchase Required: Only customers who have purchased and received this product (DELIVERED status) are eligible to submit a review.',
-      );
-    }
+    const isVerifiedPurchase = !!deliveredOrder;
 
     // 4. Create Review
     const review = await this.prisma.review.create({
       data: {
         userId,
-        productId,
+        productId: targetProductId,
         rating,
         comment,
         images: images ?? [],
-        isVerifiedPurchase: true,
+        isVerifiedPurchase,
       },
       include: {
         user: {
@@ -90,7 +94,7 @@ export class ReviewsService {
     });
 
     // 5. Fetch updated aggregate metrics
-    const aggregate = await this.getProductRatingAggregate(productId);
+    const aggregate = await this.getProductRatingAggregate(targetProductId);
 
     return {
       review,
@@ -102,6 +106,17 @@ export class ReviewsService {
    * Public: Get all reviews for a product with ratings, customer photo gallery, and aggregate breakdown.
    */
   async findByProduct(productId: string, query: ReviewQueryDto) {
+    let targetProductId = productId;
+    const prod = await this.prisma.product.findFirst({
+      where: {
+        OR: [{ id: productId }, { slug: productId }],
+      },
+      select: { id: true },
+    });
+    if (prod) {
+      targetProductId = prod.id;
+    }
+
     const {
       page = 1,
       limit = 10,
@@ -113,7 +128,7 @@ export class ReviewsService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.ReviewWhereInput = {
-      productId,
+      productId: targetProductId,
       ...(rating !== undefined ? { rating } : {}),
       ...(hasImages === true ? { images: { isEmpty: false } } : {}),
     };
