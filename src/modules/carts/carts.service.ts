@@ -56,18 +56,33 @@ export class CartsService {
     const { productVariantId, quantity } = addToCartDto;
 
     // 1. Verify variant exists and is published
-    const variant = await this.prisma.productVariant.findUnique({
+    let variant = await this.prisma.productVariant.findUnique({
       where: { id: productVariantId },
       include: {
         product: true,
       },
     });
 
+    // Fallback: If productVariantId was passed as a Product ID, find its first published variant
+    if (!variant) {
+      variant = await this.prisma.productVariant.findFirst({
+        where: {
+          productId: productVariantId,
+          product: { isPublished: true },
+        },
+        include: {
+          product: true,
+        },
+      });
+    }
+
     if (!variant || !variant.product.isPublished) {
       throw new NotFoundException(
         'Product variant is unavailable or does not exist',
       );
     }
+
+    const resolvedVariantId = variant.id;
 
     // 2. Check stock availability
     if (variant.stock < quantity) {
@@ -84,7 +99,7 @@ export class CartsService {
       where: {
         cartId_productVariantId: {
           cartId: cart.id,
-          productVariantId,
+          productVariantId: resolvedVariantId,
         },
       },
     });
@@ -105,7 +120,7 @@ export class CartsService {
       await this.prisma.cartItem.create({
         data: {
           cartId: cart.id,
-          productVariantId,
+          productVariantId: resolvedVariantId,
           quantity,
         },
       });
