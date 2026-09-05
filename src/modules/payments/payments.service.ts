@@ -324,6 +324,25 @@ export class PaymentsService {
       `🎉 Order #${updatedOrder.orderNumber} payment marked as PAID via Stripe (Session: ${session.id})`,
     );
 
+    // Clean up purchased products from wishlist
+    if (order.userId && updatedOrder.items?.length > 0) {
+      try {
+        const purchasedProductIds = updatedOrder.items
+          .map((i) => i.productId)
+          .filter(Boolean);
+        if (purchasedProductIds.length > 0) {
+          await this.prisma.wishlist.deleteMany({
+            where: {
+              userId: order.userId,
+              productId: { in: purchasedProductIds },
+            },
+          });
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to clean up wishlist items after payment: ${err}`);
+      }
+    }
+
     // 2. Dispatch Customer Payment & Order Confirmation Email
     const customerEmail =
       updatedOrder.user?.email ||

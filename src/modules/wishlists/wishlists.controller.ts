@@ -66,6 +66,19 @@ export class WishlistsController {
     return this.wishlistsService.check(userId, productId);
   }
 
+  @Delete(':productId')
+  @ResponseMessage('Wishlist item removed successfully')
+  @ApiOperation({
+    summary:
+      'Remove a specific product from customer wishlist (Authenticated Customer)',
+  })
+  remove(
+    @CurrentUser('userId') userId: string,
+    @Param('productId') productId: string,
+  ) {
+    return this.wishlistsService.remove(userId, productId);
+  }
+
   @Delete()
   @ResponseMessage('Wishlist cleared successfully')
   @ApiOperation({

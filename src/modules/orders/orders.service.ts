@@ -326,6 +326,17 @@ export class OrdersService {
         where: { cartId: userCart.id },
       });
 
+      // 8e. Clean up purchased items from customer's wishlist atomically
+      const purchasedProductIds = itemsToOrder.map((i) => i.productId);
+      if (purchasedProductIds.length > 0) {
+        await tx.wishlist.deleteMany({
+          where: {
+            userId,
+            productId: { in: purchasedProductIds },
+          },
+        });
+      }
+
       return order;
     });
 

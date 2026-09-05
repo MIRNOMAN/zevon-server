@@ -193,6 +193,40 @@ export class WishlistsService {
   }
 
   /**
+   * Customer: Explicitly remove a specific product from customer wishlist.
+   */
+  async remove(userId: string, productId: string) {
+    let product = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
+
+    if (!product) {
+      product = await this.prisma.product.findUnique({
+        where: { slug: productId },
+      });
+    }
+
+    const targetId = product ? product.id : productId;
+
+    const result = await this.prisma.wishlist.deleteMany({
+      where: {
+        userId,
+        productId: targetId,
+      },
+    });
+
+    return {
+      productId: targetId,
+      inWishlist: false,
+      action: 'REMOVED',
+      message:
+        result.count > 0
+          ? 'Product removed from your wishlist'
+          : 'Product was not in your wishlist',
+    };
+  }
+
+  /**
    * Customer: Clear all items from wishlist.
    */
   async clear(userId: string) {
