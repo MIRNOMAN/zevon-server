@@ -9,14 +9,23 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
   ApiResponse,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 import { Role } from '@prisma/client';
 import { UsersService } from './users.service.js';
 import {
@@ -30,6 +39,12 @@ import {
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator.js';
+
+// Ensure avatar upload directory exists
+const AVATAR_UPLOAD_DIR = join(process.cwd(), 'uploads', 'avatars');
+if (!existsSync(AVATAR_UPLOAD_DIR)) {
+  mkdirSync(AVATAR_UPLOAD_DIR, { recursive: true });
+}
 
 @ApiTags('User & Profile Management')
 @ApiBearerAuth('JWT-auth')
@@ -60,6 +75,70 @@ export class UsersController {
     @Body() updateProfileDto: UpdateProfileDto,
   ) {
     return this.usersService.updateProfile(userId, updateProfileDto);
+  }
+
+  @Post('avatar')
+  @HttpCode(HttpStatus.OK)
+  @ApiConsumes('multipart/form-data')
+  @ResponseMessage('Profile avatar uploaded successfully')
+  @ApiOperation({ summary: 'Upload customer profile avatar image' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Profile image file (JPG, PNG, WEBP, GIF, max 5MB)',
+        },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (_req, _file, cb) => {
+          cb(null, AVATAR_UPLOAD_DIR);
+        },
+        filename: (_req, file, cb) => {
+          const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+          const ext = extname(file.originalname).toLowerCase();
+          cb(null, `avatar-${uniqueSuffix}${ext}`);
+        },
+      }),
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+      fileFilter: (_req, file, cb) => {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|webp|gif)$/i)) {
+          return cb(
+            new BadRequestException(
+              'Only JPG, PNG, WEBP, and GIF images are allowed',
+            ),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  async uploadAvatar(
+    @CurrentUser('id') userId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No image file provided');
+    }
+
+    const avatarUrl = `/uploads/avatars/${file.filename}`;
+    const updatedUser = await this.usersService.updateProfile(userId, {
+      avatarUrl,
+    });
+    return {
+      avatarUrl,
+      user: updatedUser,
+      message: 'Avatar uploaded and updated successfully',
+    };
   }
 
   @Patch('change-password')

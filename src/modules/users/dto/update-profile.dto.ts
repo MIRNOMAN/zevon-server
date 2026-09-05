@@ -16,6 +16,6 @@ export class UpdateProfileDto {
     example: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb',
   })
   @IsOptional()
-  @IsUrl({}, { message: 'avatarUrl must be a valid URL' })
+  @IsString()
   avatarUrl?: string;
 }
