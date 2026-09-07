@@ -71,6 +71,30 @@ export class VisualSearchDto {
   categoryHint?: string;
 
   @ApiPropertyOptional({
+    example: 'Emerald Green',
+    description: 'Optional detected dominant color name from visual analysis',
+  })
+  @IsOptional()
+  @IsString()
+  dominantColorName?: string;
+
+  @ApiPropertyOptional({
+    example: 'DARK',
+    description: 'Optional detected tone (LIGHT, DARK, VIBRANT)',
+  })
+  @IsOptional()
+  @IsString()
+  detectedTone?: string;
+
+  @ApiPropertyOptional({
+    example: '#00E699,#111111,#FFFFFF',
+    description: 'Optional comma-separated or JSON array palette',
+  })
+  @IsOptional()
+  @IsString()
+  palette?: string;
+
+  @ApiPropertyOptional({
     example: 12,
     default: 12,
     description: 'Number of closest visual matches to return',

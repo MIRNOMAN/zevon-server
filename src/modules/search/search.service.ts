@@ -190,9 +190,9 @@ export class SearchService {
    * compute visual color distances (Delta-E / RGB space), and rank closest matching garments.
    */
   async visualSearch(fileBuffer: Buffer | null, dto: VisualSearchDto) {
-    const { imageUrl, hexColor, categoryHint, limit = 12 } = dto;
+    const { imageUrl, hexColor, categoryHint, dominantColorName, detectedTone, palette, limit = 12 } = dto;
 
-    if (!fileBuffer && !imageUrl && !hexColor) {
+    if (!fileBuffer && !imageUrl && !hexColor && !dominantColorName) {
       throw new BadRequestException(
         'Please provide an image file, an imageUrl, or a hexColor to perform visual search',
       );
@@ -203,6 +203,9 @@ export class SearchService {
       fileBuffer,
       imageUrl,
       hexColor,
+      dominantColorName,
+      detectedTone,
+      palette,
     );
 
     // 2. Fetch catalog products and their variant color swatches
@@ -210,9 +213,11 @@ export class SearchService {
       where: {
         isPublished: true,
         ...(categoryHint && {
-          category: {
-            name: { contains: categoryHint, mode: 'insensitive' },
-          },
+          OR: [
+            { category: { name: { contains: categoryHint, mode: 'insensitive' } } },
+            { category: { slug: { contains: categoryHint, mode: 'insensitive' } } },
+            { title: { contains: categoryHint, mode: 'insensitive' } },
+          ],
         }),
       },
       take: 150,
@@ -240,10 +245,25 @@ export class SearchService {
         let matchedVariant = p.variants[0] || null;
 
         for (const variant of p.variants) {
-          const distance = this.calculateColorDistance(
+          const variantRgb = this.hexToRgb(variant.colorCode || '#000000');
+          let distance = this.calculateColorDistance(
             visualFeatures.dominantRgb,
-            this.hexToRgb(variant.colorCode || '#000000'),
+            variantRgb,
           );
+
+          // Additional bonus if palette contains variant color
+          if (visualFeatures.paletteHex && visualFeatures.paletteHex.length > 0) {
+            for (const palHex of visualFeatures.paletteHex) {
+              const palDist = this.calculateColorDistance(
+                this.hexToRgb(palHex),
+                variantRgb,
+              );
+              if (palDist < distance) {
+                distance = palDist;
+              }
+            }
+          }
+
           if (distance < bestDistance) {
             bestDistance = distance;
             matchedVariant = variant;
@@ -252,24 +272,34 @@ export class SearchService {
 
         // Distance range: 0 (exact match) to ~441 (opposite color)
         // Convert to similarity percentage: 0 - 100%
-        const normalizedSim = Math.max(
-          0,
-          Math.min(100, Math.round(100 - (bestDistance / 441.67) * 100)),
+        let normalizedSim = Math.max(
+          15,
+          Math.min(99, Math.round(100 - (bestDistance / 441.67) * 85)),
         );
 
-        // Boost score if title or fabric relates to detected tone or texture
-        let finalScore = normalizedSim;
+        // Boost if color name or detected tone matches product/variant
+        const domNameLower = visualFeatures.colorName.toLowerCase();
+        const varColorLower = (matchedVariant?.color || '').toLowerCase();
+        const titleLower = p.title.toLowerCase();
+
+        if (varColorLower && domNameLower.includes(varColorLower)) {
+          normalizedSim = Math.min(98, normalizedSim + 15);
+        } else if (titleLower && domNameLower.includes(titleLower.split(' ')[0])) {
+          normalizedSim = Math.min(98, normalizedSim + 10);
+        }
+
+        // Boost score if fabric relates to detected texture
         if (p.fabricWeave && visualFeatures.textureKeyword) {
           if (
             p.fabricWeave.toLowerCase().includes(visualFeatures.textureKeyword)
           ) {
-            finalScore = Math.min(100, finalScore + 8);
+            normalizedSim = Math.min(98, normalizedSim + 8);
           }
         }
 
         return {
           product: p,
-          similarityScore: finalScore,
+          similarityScore: normalizedSim,
           matchedVariant,
           bestDistance,
         };
@@ -714,61 +744,39 @@ export class SearchService {
     fileBuffer: Buffer | null,
     imageUrl?: string,
     hexColor?: string,
+    dominantColorName?: string,
+    detectedTone?: string,
+    palette?: string,
   ) {
-    if (hexColor) {
-      const rgb = this.hexToRgb(hexColor);
-      return {
-        dominantHex: hexColor.toUpperCase(),
-        dominantRgb: rgb,
-        colorName: this.getColorNameFromRgb(rgb),
-        paletteHex: [hexColor.toUpperCase()],
-        tone: rgb.r + rgb.g + rgb.b < 380 ? 'DARK' : 'LIGHT',
-        textureKeyword: null,
-      };
-    }
-
-    // If buffer is present, sample raw bytes for dominant pixel heuristics
-    if (fileBuffer && fileBuffer.length > 54) {
-      let rSum = 0;
-      let gSum = 0;
-      let bSum = 0;
-      let count = 0;
-
-      // Sample every 4th byte
-      const step = Math.max(1, Math.floor(fileBuffer.length / 500));
-      for (let i = 20; i < fileBuffer.length - 3; i += step) {
-        rSum += fileBuffer[i] ?? 0;
-        gSum += fileBuffer[i + 1] ?? 0;
-        bSum += fileBuffer[i + 2] ?? 0;
-        count++;
+    if (hexColor || dominantColorName) {
+      const activeHex = (hexColor || '#1E293B').toUpperCase();
+      const rgb = this.hexToRgb(activeHex);
+      const name = dominantColorName || this.getColorNameFromRgb(rgb);
+      const tone = detectedTone || (rgb.r + rgb.g + rgb.b < 380 ? 'DARK' : 'LIGHT');
+      let palArray = [activeHex];
+      if (palette) {
+        try {
+          palArray = typeof palette === 'string' && palette.startsWith('[')
+            ? JSON.parse(palette)
+            : palette.split(',').map((s) => s.trim().toUpperCase());
+        } catch {
+          palArray = [activeHex];
+        }
       }
 
-      const r = Math.round(rSum / count) % 256;
-      const g = Math.round(gSum / count) % 256;
-      const b = Math.round(bSum / count) % 256;
-      const dominantHex = this.rgbToHex(r, g, b);
-      const rgb = { r, g, b };
-
       return {
-        dominantHex,
+        dominantHex: activeHex,
         dominantRgb: rgb,
-        colorName: this.getColorNameFromRgb(rgb),
-        paletteHex: [
-          dominantHex,
-          this.rgbToHex(
-            Math.max(0, r - 30),
-            Math.max(0, g - 30),
-            Math.max(0, b - 30),
-          ),
-        ],
-        tone: r + g + b < 380 ? 'DARK' : 'LIGHT',
-        textureKeyword: r > 180 && g > 170 ? 'linen' : b > r ? 'denim' : null,
+        colorName: name,
+        paletteHex: palArray,
+        tone,
+        textureKeyword: null,
       };
     }
 
     // Fallback URL hash-based deterministic visual signature
     let hash = 0;
-    const str = imageUrl || 'default-clothing-visual';
+    const str = imageUrl || 'zevon-streetwear-visual';
     for (let i = 0; i < str.length; i++) {
       hash = (hash << 5) - hash + str.charCodeAt(i);
       hash |= 0;
@@ -794,9 +802,9 @@ export class SearchService {
     const clean = hex.replace('#', '').trim();
     if (clean.length === 3) {
       return {
-        r: parseInt(clean[0] + clean[0], 16),
-        g: parseInt(clean[1] + clean[1], 16),
-        b: parseInt(clean[2] + clean[2], 16),
+        r: parseInt(clean[0] + clean[0], 16) || 0,
+        g: parseInt(clean[1] + clean[1], 16) || 0,
+        b: parseInt(clean[2] + clean[2], 16) || 0,
       };
     }
     if (clean.length >= 6) {
@@ -838,12 +846,21 @@ export class SearchService {
     b: number;
   }): string {
     const { r, g, b } = rgb;
-    if (r < 50 && g < 50 && b < 50) return 'Black / Charcoal';
-    if (r > 210 && g > 210 && b > 210) return 'White / Off-White';
-    if (b > r + 30 && b > g + 30) return 'Navy / Indigo';
-    if (g > r + 20 && g > b + 20) return 'Olive / Forest Green';
-    if (r > g + 40 && r > b + 40) return 'Maroon / Rust';
-    if (r > 160 && g > 140 && b < 120) return 'Beige / Tan / Khaki';
+    if (r < 40 && g < 40 && b < 40) return 'Onyx Black';
+    if (r > 225 && g > 225 && b > 225) return 'Crisp White';
+    if (r > 200 && g > 195 && b > 180) return 'Ecru / Cream';
+    if (g > 140 && g > r + 30 && b > 140) return 'Cyber Teal / Mint';
+    if (g > r + 25 && g > b + 25) return 'Emerald / Forest Green';
+    if (g > 90 && r > 90 && b < 70 && Math.abs(r - g) < 40) return 'Olive / Sage';
+    if (b > r + 30 && b > g + 20) return 'Deep Navy / Cobalt';
+    if (r > 160 && g < 70 && b < 70) return 'Crimson / Ruby';
+    if (r > 110 && g < 50 && b < 60) return 'Maroon / Burgundy';
+    if (r > 180 && g > 140 && b < 100) return 'Desert Sand / Camel';
+    if (r > 140 && g > 120 && b < 90) return 'Beige / Tan';
+    if (Math.abs(r - g) < 20 && Math.abs(g - b) < 20) {
+      return r < 120 ? 'Dark Charcoal' : 'Concrete Gray';
+    }
+    if (r > 160 && b > 160 && g < 130) return 'Lilac / Purple';
     return 'Neutral Hue';
   }
 

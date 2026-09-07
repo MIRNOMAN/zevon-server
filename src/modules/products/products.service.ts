@@ -317,6 +317,11 @@ export class ProductsService {
           variants: {
             orderBy: [{ color: 'asc' }, { size: 'asc' }],
           },
+          reviews: {
+            select: {
+              rating: true,
+            },
+          },
           _count: {
             select: {
               reviews: true,
@@ -337,6 +342,16 @@ export class ProductsService {
           ),
         ),
       ).map((str) => JSON.parse(str) as { color: string; colorCode: string });
+
+      const totalReviews = p.reviews ? p.reviews.length : (p._count?.reviews || 0);
+      const avgRating =
+        totalReviews > 0
+          ? Number(
+              (
+                p.reviews.reduce((acc, r) => acc + r.rating, 0) / totalReviews
+              ).toFixed(1),
+            )
+          : 0;
 
       return {
         id: p.id,
@@ -362,7 +377,8 @@ export class ProductsService {
         inStock: totalStock > 0,
         availableSizes,
         availableColors,
-        reviewCount: p._count.reviews,
+        rating: avgRating > 0 ? avgRating : 0,
+        reviewCount: totalReviews,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       };
