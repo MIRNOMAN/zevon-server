@@ -44,6 +44,19 @@ export const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_SECURE: z.coerce.boolean().optional().default(false),
   EMAIL_FROM: z.string().optional().default('ZEVON Store <no-reply@zevon.com>'),
+
+  // MinIO / S3 Storage
+  AWS_S3_ENDPOINT_URL: z.string().optional(),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  AWS_STORAGE_BUCKET_NAME: z.string().optional().default('emdadullah'),
+
+  MI_SPACE_ENDPOINT: z.string().optional().default('api.zenexcloud.com'),
+  MI_SPACE_ACCESS_KEY: z.string().optional(),
+  MI_SPACE_SECRET_KEY: z.string().optional(),
+  MI_SPACE_BUCKET: z.string().optional().default('emdadullah'),
+  MI_PORT: z.coerce.number().int().optional().default(443),
+  MI_USE_SSL: z.coerce.boolean().optional().default(true),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

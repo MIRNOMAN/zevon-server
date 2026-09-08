@@ -42,6 +42,7 @@ import { ChatModule } from './modules/chat/chat.module.js';
 import { ContactModule } from './modules/contact/contact.module.js';
 import { StoresModule } from './modules/stores/stores.module.js';
 import { SustainabilityModule } from './modules/sustainability/sustainability.module.js';
+import { UploadModule } from './modules/upload/upload.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -90,6 +91,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     ContactModule,
     StoresModule,
     SustainabilityModule,
+    UploadModule,
   ],
   providers: [
     // 1. Global JWT guard — all routes are protected unless decorated with @Public()
