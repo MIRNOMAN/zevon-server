@@ -23,6 +23,7 @@ import {
   ReviewQueryDto,
 } from './dto/index.js';
 import { Public } from '../../common/decorators/public.decorator.js';
+import { Roles } from '../../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator.js';
 
@@ -30,6 +31,31 @@ import { ResponseMessage } from '../../common/decorators/response-message.decora
 @Controller('reviews')
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
+
+  // ── Admin Moderation Endpoints ────────────────────────────────
+  @Get('admin/all')
+  @Roles('ADMIN', 'MANAGER')
+  @ApiBearerAuth('JWT-auth')
+  @ResponseMessage('All reviews retrieved for admin moderation')
+  @ApiOperation({
+    summary: 'List all reviews across products for moderation (Admin/Manager)',
+  })
+  findAllAdmin(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('rating') rating?: string,
+    @Query('search') search?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    const ratingNum = rating ? parseInt(rating, 10) : undefined;
+    return this.reviewsService.findAllAdmin(
+      pageNum,
+      limitNum,
+      ratingNum,
+      search,
+    );
+  }
 
   // ── Public Product Reviews ───────────────────────────────────
 

@@ -332,6 +332,68 @@ export class ReviewsService {
     };
   }
 
+  /**
+   * Admin/Manager: List all customer reviews with pagination, rating filter, search across all products.
+   */
+  async findAllAdmin(page = 1, limit = 20, rating?: number, search?: string) {
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.ReviewWhereInput = {
+      ...(rating ? { rating } : {}),
+      ...(search
+        ? {
+            OR: [
+              { comment: { contains: search, mode: 'insensitive' } },
+              { user: { name: { contains: search, mode: 'insensitive' } } },
+              { product: { title: { contains: search, mode: 'insensitive' } } },
+            ],
+          }
+        : {}),
+    };
+
+    const [total, reviews] = await Promise.all([
+      this.prisma.review.count({ where }),
+      this.prisma.review.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+          product: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              basePrice: true,
+              images: {
+                where: { isPrimary: true },
+                take: 1,
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      reviews,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   // ── Helper Methods ──────────────────────────────────────────
 
   private async getProductRatingAggregate(productId: string) {
