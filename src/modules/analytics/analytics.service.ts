@@ -186,12 +186,56 @@ export class AnalyticsService {
     }
 
     // ── Top Selling Products List ─────────────────────────────────────────
-    const topSellingProducts = topSellingItemsRaw.map((item) => ({
-      productId: item.productId,
-      productTitle: item.productTitle,
-      totalUnitsSold: item._sum.quantity || 0,
-      totalRevenue: Number((item._sum.totalPrice || 0).toString()),
-    }));
+    let topSellingProducts = await Promise.all(
+      topSellingItemsRaw.map(async (item) => {
+        const product = item.productId
+          ? await this.prisma.product.findUnique({
+              where: { id: item.productId },
+              select: {
+                category: { select: { name: true } },
+                variants: { select: { stock: true } },
+                images: { select: { url: true }, take: 1 },
+              },
+            })
+          : null;
+
+        const inStock =
+          product?.variants?.reduce((acc, v) => acc + v.stock, 0) || 0;
+
+        return {
+          productId: item.productId,
+          productTitle: item.productTitle,
+          category: product?.category?.name || 'Apparel',
+          totalUnitsSold: item._sum.quantity || 0,
+          totalRevenue: Number((item._sum.totalPrice || 0).toString()),
+          inStock,
+          imageUrl: product?.images?.[0]?.url || null,
+        };
+      }),
+    );
+
+    // If no sales items exist yet, populate from active product catalog
+    if (topSellingProducts.length === 0) {
+      const activeProducts = await this.prisma.product.findMany({
+        take: 6,
+        orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+        include: {
+          category: { select: { name: true } },
+          variants: { select: { stock: true } },
+          images: { select: { url: true }, take: 1 },
+        },
+      });
+
+      topSellingProducts = activeProducts.map((p) => ({
+        productId: p.id,
+        productTitle: p.title,
+        category: p.category?.name || 'Apparel',
+        totalUnitsSold: 0,
+        totalRevenue: 0,
+        inStock: p.variants.reduce((acc, v) => acc + v.stock, 0),
+        imageUrl: p.images[0]?.url || null,
+      }));
+    }
 
     return {
       kpis: {
