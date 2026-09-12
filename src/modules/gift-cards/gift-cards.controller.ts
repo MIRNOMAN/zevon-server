@@ -2,6 +2,9 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
+  Param,
   Body,
   Query,
   HttpStatus,
@@ -12,10 +15,13 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
+  ApiParam,
 } from '@nestjs/swagger';
 import { GiftCardsService } from './gift-cards.service.js';
 import {
   PurchaseGiftCardDto,
+  CreateGiftCardDto,
+  UpdateGiftCardDto,
   CheckBalanceDto,
   RedeemGiftCardDto,
   GiftCardQueryDto,
@@ -70,6 +76,25 @@ export class GiftCardsController {
     return this.giftCardsService.redeem(userId, dto);
   }
 
+  // ──────────────────────────────────────────────────────────────
+  // ADMIN & MANAGER MANAGEMENT ENDPOINTS
+  // ──────────────────────────────────────────────────────────────
+
+  @Post()
+  @Roles('ADMIN', 'MANAGER')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.CREATED)
+  @ResponseMessage('Gift card issued successfully')
+  @ApiOperation({
+    summary: 'Directly issue a digital gift card (Admin/Manager)',
+  })
+  create(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: CreateGiftCardDto,
+  ) {
+    return this.giftCardsService.create(userId, dto);
+  }
+
   @Get()
   @Roles('ADMIN', 'MANAGER')
   @ApiBearerAuth('JWT-auth')
@@ -81,5 +106,53 @@ export class GiftCardsController {
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
   findAll(@Query() query: GiftCardQueryDto) {
     return this.giftCardsService.findAll(query);
+  }
+
+  @Get(':id')
+  @Roles('ADMIN', 'MANAGER')
+  @ApiBearerAuth('JWT-auth')
+  @ResponseMessage('Gift card details retrieved successfully')
+  @ApiOperation({
+    summary: 'Get single gift card by ID with redemption logs (Admin/Manager)',
+  })
+  @ApiParam({ name: 'id', description: 'Gift card ID' })
+  findOne(@Param('id') id: string) {
+    return this.giftCardsService.findOne(id);
+  }
+
+  @Patch(':id')
+  @Roles('ADMIN', 'MANAGER')
+  @ApiBearerAuth('JWT-auth')
+  @ResponseMessage('Gift card updated successfully')
+  @ApiOperation({
+    summary: 'Update gift card details (Admin/Manager)',
+  })
+  @ApiParam({ name: 'id', description: 'Gift card ID' })
+  update(@Param('id') id: string, @Body() dto: UpdateGiftCardDto) {
+    return this.giftCardsService.update(id, dto);
+  }
+
+  @Patch(':id/toggle')
+  @Roles('ADMIN', 'MANAGER')
+  @ApiBearerAuth('JWT-auth')
+  @ResponseMessage('Gift card status toggled successfully')
+  @ApiOperation({
+    summary: 'Toggle gift card ACTIVE / DISABLED status (Admin/Manager)',
+  })
+  @ApiParam({ name: 'id', description: 'Gift card ID' })
+  toggleStatus(@Param('id') id: string) {
+    return this.giftCardsService.toggleStatus(id);
+  }
+
+  @Delete(':id')
+  @Roles('ADMIN', 'MANAGER')
+  @ApiBearerAuth('JWT-auth')
+  @ResponseMessage('Gift card deleted successfully')
+  @ApiOperation({
+    summary: 'Delete a gift card (Admin/Manager)',
+  })
+  @ApiParam({ name: 'id', description: 'Gift card ID' })
+  remove(@Param('id') id: string) {
+    return this.giftCardsService.remove(id);
   }
 }
