@@ -47,12 +47,12 @@ export class PaymentsService {
 
     this.defaultSuccessUrl = this.configService.get<string>(
       'stripe.successUrl',
-      'http://localhost:3000/order/success?session_id={CHECKOUT_SESSION_ID}',
+      'https://web.mirnoman.com/order/success?session_id={CHECKOUT_SESSION_ID}',
     );
 
     this.defaultCancelUrl = this.configService.get<string>(
       'stripe.cancelUrl',
-      'http://localhost:3000/order/cancel',
+      'https://web.mirnoman.com/order/cancel',
     );
 
     this.stripe = new Stripe(secretKey, {

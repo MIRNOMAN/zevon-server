@@ -7,7 +7,7 @@ export default registerAs('stripe', () => ({
   currency: (process.env.STRIPE_CURRENCY || 'bdt').toLowerCase(),
   successUrl:
     process.env.STRIPE_SUCCESS_URL ||
-    'http://localhost:3000/order/success?session_id={CHECKOUT_SESSION_ID}',
+    'https://web.mirnoman.com/order/success?session_id={CHECKOUT_SESSION_ID}',
   cancelUrl:
-    process.env.STRIPE_CANCEL_URL || 'http://localhost:3000/order/cancel',
+    process.env.STRIPE_CANCEL_URL || 'https://web.mirnoman.com/order/cancel',
 }));
