@@ -192,11 +192,51 @@ export class PaymentsService {
     return {
       sessionId: session.id,
       sessionUrl: session.url,
+      url: session.url,
       orderId: order.id,
       orderNumber: order.orderNumber,
       totalAmount: totalAmountNum,
       currency: this.currency,
     };
+  }
+
+  /**
+   * Verifies a Stripe Checkout Session status directly (used after customer redirects back).
+   */
+  async verifySession(sessionId: string) {
+    if (!sessionId) {
+      throw new BadRequestException('Session ID is required for verification.');
+    }
+
+    try {
+      const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+
+      if (!session) {
+        throw new NotFoundException(`Session "${sessionId}" was not found.`);
+      }
+
+      if (session.payment_status === 'paid') {
+        await this.handleCheckoutSessionCompleted(session);
+        return {
+          paid: true,
+          status: 'paid',
+          orderId: session.metadata?.orderId || session.client_reference_id,
+          orderNumber: session.metadata?.orderNumber,
+        };
+      }
+
+      return {
+        paid: false,
+        status: session.payment_status,
+        orderId: session.metadata?.orderId || session.client_reference_id,
+        orderNumber: session.metadata?.orderNumber,
+      };
+    } catch (err: any) {
+      this.logger.error(`Failed to verify Stripe session ${sessionId}: ${err?.message}`);
+      throw new BadRequestException(
+        err?.message || 'Could not verify payment session with Stripe.',
+      );
+    }
   }
 
   /**

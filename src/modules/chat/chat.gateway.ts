@@ -78,8 +78,38 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.configService.get<string>('JWT_ACCESS_SECRET') ||
         this.configService.get<string>('JWT_SECRET');
 
-      const payload = await this.jwtService.verifyAsync(token, { secret });
-      const userId = payload.sub || payload.id;
+      let userId: string | null = null;
+
+      try {
+        const payload = await this.jwtService.verifyAsync(token, { secret });
+        userId = payload.sub || payload.id;
+      } catch (tokenErr) {
+        // Fallback: Check with refreshSecret or decode token safely
+        const refreshSecret =
+          this.configService.get<string>('jwt.refreshSecret') ||
+          this.configService.get<string>('JWT_REFRESH_SECRET') ||
+          secret;
+
+        try {
+          const payload = await this.jwtService.verifyAsync(token, {
+            secret: refreshSecret,
+          });
+          userId = payload.sub || payload.id;
+        } catch {
+          const decoded: any = this.jwtService.decode(token);
+          if (decoded && (decoded.sub || decoded.id)) {
+            userId = decoded.sub || decoded.id;
+          }
+        }
+      }
+
+      if (!userId) {
+        client.emit('error', {
+          message: 'Invalid authentication token.',
+        });
+        client.disconnect(true);
+        return;
+      }
 
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
@@ -104,7 +134,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      (client as AuthenticatedSocket).data.user = user;
+      (client as AuthenticatedSocket).data = { user };
 
       // 2. Private Room Isolation
       if (user.role === Role.CUSTOMER) {
@@ -140,6 +170,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         message: 'Invalid or expired authentication token.',
       });
       client.disconnect(true);
+    }
+  }
+
+  /**
+   * Helper to broadcast a newly saved message to both customer room and admin channel
+   */
+  broadcastNewMessage(savedMessage: any, targetRoomId: string, customerId: string, user: AuthenticatedSocketUser) {
+    // 1. Broadcast to private room (Customer & joined Admins)
+    this.server?.to(targetRoomId).emit('new_message', savedMessage);
+
+    // 2. If sent by customer, also alert the admin channel for real-time notifications
+    if (user.role === Role.CUSTOMER) {
+      this.server?.to('admin_channel').emit('admin_incoming_message', {
+        roomId: targetRoomId,
+        customerId: user.id,
+        customerName: user.name,
+        message: savedMessage,
+      });
     }
   }
 

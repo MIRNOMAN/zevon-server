@@ -266,7 +266,7 @@ export class CartsService {
     return cart;
   }
 
-  private calculateCartTotals(cartData: {
+  private async calculateCartTotals(cartData: {
     id: string;
     userId: string;
     items: Array<{
@@ -302,6 +302,33 @@ export class CartsService {
   }) {
     const FREE_SHIPPING_THRESHOLD = 2500; // Free shipping over 2500 BDT
 
+    const productIds = cartData.items.map((i) => i.variant.product.id);
+    const now = new Date();
+    const activeFlashSaleItems =
+      productIds.length > 0
+        ? await this.prisma.flashSaleItem.findMany({
+            where: {
+              productId: { in: productIds },
+              flashSale: {
+                isActive: true,
+                startTime: { lte: now },
+                endTime: { gte: now },
+              },
+            },
+            select: {
+              productId: true,
+              discountPrice: true,
+            },
+          })
+        : [];
+
+    const flashMap = new Map(
+      activeFlashSaleItems.map((fsi) => [
+        fsi.productId,
+        Number(fsi.discountPrice),
+      ]),
+    );
+
     let subtotal = 0;
     let originalSubtotal = 0;
     let totalItems = 0;
@@ -312,9 +339,17 @@ export class CartsService {
       const { product } = variant;
 
       const basePriceNum = Number(product.basePrice);
-      const discountPriceNum = product.discountPrice
+      let discountPriceNum = product.discountPrice
         ? Number(product.discountPrice)
         : null;
+
+      const flashPrice = flashMap.get(product.id);
+      if (flashPrice !== undefined) {
+        if (discountPriceNum === null || flashPrice < discountPriceNum) {
+          discountPriceNum = flashPrice;
+        }
+      }
+
       const extraPriceNum = Number(variant.extraPrice);
 
       const unitPrice = (discountPriceNum ?? basePriceNum) + extraPriceNum;

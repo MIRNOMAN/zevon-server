@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Body,
+  Param,
   Headers,
   Req,
   HttpStatus,
@@ -73,6 +74,16 @@ export class PaymentsController {
     }
 
     return this.paymentsService.handleWebhook(rawBody, signature);
+  }
+
+  @Get('verify/:sessionId')
+  @Public()
+  @ResponseMessage('Payment session verified')
+  @ApiOperation({
+    summary: 'Verify Stripe checkout session status and update order',
+  })
+  verifySession(@Param('sessionId') sessionId: string) {
+    return this.paymentsService.verifySession(sessionId);
   }
 
   @Get('config')

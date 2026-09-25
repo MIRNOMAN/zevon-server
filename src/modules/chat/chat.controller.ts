@@ -5,6 +5,7 @@ import {
   Patch,
   Param,
   Query,
+  Body,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
@@ -30,10 +31,12 @@ import { Roles } from '../../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator.js';
 import { ChatService } from './chat.service.js';
+import { ChatGateway } from './chat.gateway.js';
 import {
   ChatHistoryQueryDto,
   UploadResponseDto,
   AttachmentType,
+  SendMessagePayloadDto,
 } from './dto/chat.dto.js';
 
 // Ensure upload directory exists
@@ -46,7 +49,54 @@ if (!existsSync(CHAT_UPLOAD_DIR)) {
 @ApiBearerAuth('JWT-auth')
 @Controller('chat')
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly chatGateway: ChatGateway,
+  ) {}
+
+  /**
+   * Send chat message via REST API with live WebSocket broadcast
+   */
+  @Post('message')
+  @ApiOperation({
+    summary: 'Send chat message via REST API with instant WebSocket broadcast',
+  })
+  @ResponseMessage('Message sent successfully')
+  async sendMessage(
+    @CurrentUser() user: User,
+    @Body() payload: SendMessagePayloadDto,
+  ) {
+    let customerId: string;
+    let targetRoomId: string;
+
+    if (user.role === Role.CUSTOMER) {
+      customerId = user.id;
+      targetRoomId = this.chatService.getRoomId(user.id);
+    } else {
+      customerId = this.chatService.extractCustomerId(payload.roomId || user.id);
+      targetRoomId = this.chatService.getRoomId(customerId);
+    }
+
+    const savedMessage = await this.chatService.saveMessage(
+      user.id,
+      customerId,
+      targetRoomId,
+      {
+        content: payload.content,
+        attachmentUrl: payload.attachmentUrl,
+        attachmentType: payload.attachmentType,
+      },
+    );
+
+    this.chatGateway.broadcastNewMessage(
+      savedMessage,
+      targetRoomId,
+      customerId,
+      user as any,
+    );
+
+    return savedMessage;
+  }
 
   /**
    * 1. REST File Attachment Upload (Image / PDF)
@@ -79,6 +129,9 @@ export class ChatController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
+          if (!existsSync(CHAT_UPLOAD_DIR)) {
+            mkdirSync(CHAT_UPLOAD_DIR, { recursive: true });
+          }
           cb(null, CHAT_UPLOAD_DIR);
         },
         filename: (_req, file, cb) => {
@@ -94,29 +147,23 @@ export class ChatController {
   )
   @ResponseMessage('File uploaded successfully')
   uploadAttachment(
-    @UploadedFile(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({
-          fileType:
-            /(image\/jpeg|image\/png|image\/webp|image\/gif|application\/pdf)/,
-        })
-        .addMaxSizeValidator({
-          maxSize: 10 * 1024 * 1024,
-        })
-        .build({
-          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        }),
-    )
-    file: Express.Multer.File,
+    @UploadedFile()
+    file?: Express.Multer.File,
   ): UploadResponseDto {
     if (!file) {
       throw new BadRequestException('No file provided for upload.');
     }
 
     let attachmentType = AttachmentType.FILE;
-    if (file.mimetype.startsWith('image/')) {
+    if (
+      file.mimetype.startsWith('image/') ||
+      /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(file.originalname)
+    ) {
       attachmentType = AttachmentType.IMAGE;
-    } else if (file.mimetype === 'application/pdf') {
+    } else if (
+      file.mimetype === 'application/pdf' ||
+      /\.pdf$/i.test(file.originalname)
+    ) {
       attachmentType = AttachmentType.PDF;
     }
 

@@ -80,6 +80,33 @@ export class OrdersService {
     }
 
     // 2. Validate Product Availability & Current Stock Levels
+    const productIds = userCart.items.map((i) => i.variant.product.id);
+    const now = new Date();
+    const activeFlashSaleItems =
+      productIds.length > 0
+        ? await this.prisma.flashSaleItem.findMany({
+            where: {
+              productId: { in: productIds },
+              flashSale: {
+                isActive: true,
+                startTime: { lte: now },
+                endTime: { gte: now },
+              },
+            },
+            select: {
+              productId: true,
+              discountPrice: true,
+            },
+          })
+        : [];
+
+    const flashMap = new Map(
+      activeFlashSaleItems.map((fsi) => [
+        fsi.productId,
+        Number(fsi.discountPrice),
+      ]),
+    );
+
     let subtotal = 0;
     const itemsToOrder: Array<{
       productId: string;
@@ -109,7 +136,11 @@ export class OrdersService {
         );
       }
 
-      const basePrice = Number(product.discountPrice ?? product.basePrice);
+      let basePrice = Number(product.discountPrice ?? product.basePrice);
+      const flashPrice = flashMap.get(product.id);
+      if (flashPrice !== undefined && flashPrice < basePrice) {
+        basePrice = flashPrice;
+      }
       const extraPrice = Number(variant.extraPrice);
       const unitPrice = basePrice + extraPrice;
       const totalPrice = unitPrice * quantity;
