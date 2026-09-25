@@ -4,8 +4,10 @@ import {
   Get,
   Body,
   Param,
+  Query,
   Headers,
   Req,
+  Res,
   HttpStatus,
   HttpCode,
   BadRequestException,
@@ -17,18 +19,27 @@ import {
   ApiBearerAuth,
   ApiResponse,
 } from '@nestjs/swagger';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { PaymentsService } from './payments.service.js';
-import { CreateCheckoutSessionDto } from './dto/index.js';
+import { BkashService } from './bkash.service.js';
+import {
+  CreateCheckoutSessionDto,
+  CreateBkashPaymentDto,
+  ExecuteBkashPaymentDto,
+} from './dto/index.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator.js';
 import { Public } from '../../common/decorators/public.decorator.js';
 
-@ApiTags('Payments & Stripe Gateway')
+@ApiTags('Payments & Gateways')
 @Controller('payments')
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly bkashService: BkashService,
+  ) {}
 
+  // ── Stripe Checkout Endpoints ────────────────────────────────
   @Post('checkout-session')
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
@@ -55,11 +66,6 @@ export class PaymentsController {
   @ApiOperation({
     summary:
       'Stripe Webhook Listener for asynchronous payment events (checkout.session.completed, payment_intent.payment_failed)',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description:
-      'Verifies Stripe cryptographic signature and updates order payment status and sends email confirmation',
   })
   async handleWebhook(
     @Headers('stripe-signature') signature: string,
@@ -95,5 +101,63 @@ export class PaymentsController {
   })
   getStripeConfig() {
     return this.paymentsService.getStripeConfig();
+  }
+
+  // ── bKash Tokenized Checkout PGW Endpoints ───────────────────
+
+  @Post('bkash/create')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('bKash payment checkout session created successfully')
+  @ApiOperation({
+    summary: 'Initialize bKash Tokenized Checkout payment session',
+  })
+  createBkashPayment(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: CreateBkashPaymentDto,
+  ) {
+    return this.bkashService.createPayment(userId, dto);
+  }
+
+  @Post('bkash/execute')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('bKash payment executed and verified successfully')
+  @ApiOperation({
+    summary: 'Execute bKash payment with paymentID',
+  })
+  executeBkashPayment(@Body() dto: ExecuteBkashPaymentDto) {
+    return this.bkashService.executePayment(dto);
+  }
+
+  @Get('bkash/callback')
+  @Public()
+  @ApiOperation({
+    summary: 'bKash PGW Redirect Callback URL handler',
+  })
+  async handleBkashCallback(
+    @Query('paymentID') paymentID: string,
+    @Query('status') status: string,
+    @Query('orderId') orderId: string,
+    @Query('orderNumber') orderNumber: string,
+    @Res() res: Response,
+  ) {
+    const result = await this.bkashService.handleCallback({
+      paymentID,
+      status,
+      orderId,
+      orderNumber,
+    });
+    return res.redirect(result.redirectUrl);
+  }
+
+  @Get('bkash/query/:paymentId')
+  @Public()
+  @ResponseMessage('bKash payment status retrieved')
+  @ApiOperation({
+    summary: 'Query bKash payment status by paymentID',
+  })
+  queryBkashPayment(@Param('paymentId') paymentId: string) {
+    return this.bkashService.queryPayment(paymentId);
   }
 }

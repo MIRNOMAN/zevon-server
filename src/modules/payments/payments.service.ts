@@ -384,50 +384,54 @@ export class PaymentsService {
     }
 
     // 2. Dispatch Customer Payment & Order Confirmation Email
-    const customerEmail =
-      updatedOrder.user?.email ||
-      session.customer_details?.email ||
-      ((order.shippingAddress as Record<string, unknown>)?.email as string);
+    try {
+      const customerEmail =
+        updatedOrder.user?.email ||
+        session.customer_details?.email ||
+        ((order.shippingAddress as Record<string, unknown>)?.email as string);
 
-    if (customerEmail) {
-      const shippingAddr =
-        (order.shippingAddress as Record<string, unknown>) || {};
+      if (customerEmail) {
+        const shippingAddr =
+          (order.shippingAddress as Record<string, unknown>) || {};
 
-      await this.mailService.sendOrderPaymentSuccessEmail({
-        orderNumber: updatedOrder.orderNumber,
-        customerName:
-          updatedOrder.user?.name ||
-          (shippingAddr.fullName as string) ||
-          'Valued Customer',
-        customerEmail,
-        paymentMethod: 'Stripe (Credit / Debit Card)',
-        transactionId: session.id,
-        subtotal: Number(order.subtotal),
-        discountAmount: Number(order.discountAmount),
-        shippingCost: Number(order.shippingCost),
-        totalAmount: Number(order.totalAmount),
-        currency: this.currency.toUpperCase(),
-        shippingAddress: {
-          fullName: shippingAddr.fullName as string,
-          phone: shippingAddr.phone as string,
-          addressLine1: shippingAddr.addressLine1 as string,
-          addressLine2: shippingAddr.addressLine2 as string,
-          city: shippingAddr.city as string,
-          state: shippingAddr.state as string,
-          postalCode: shippingAddr.postalCode as string,
-          country: shippingAddr.country as string,
-        },
-        items: updatedOrder.items.map((item) => ({
-          productTitle: item.productTitle,
-          sku: item.sku,
-          size: item.size,
-          color: item.color,
-          unitPrice: Number(item.unitPrice),
-          quantity: item.quantity,
-          totalPrice: Number(item.totalPrice),
-        })),
-        createdAt: updatedOrder.createdAt,
-      });
+        await this.mailService.sendOrderPaymentSuccessEmail({
+          orderNumber: updatedOrder.orderNumber,
+          customerName:
+            updatedOrder.user?.name ||
+            (shippingAddr.fullName as string) ||
+            'Valued Customer',
+          customerEmail,
+          paymentMethod: 'Stripe (Credit / Debit Card)',
+          transactionId: session.id,
+          subtotal: Number(order.subtotal),
+          discountAmount: Number(order.discountAmount),
+          shippingCost: Number(order.shippingCost),
+          totalAmount: Number(order.totalAmount),
+          currency: this.currency.toUpperCase(),
+          shippingAddress: {
+            fullName: shippingAddr.fullName as string,
+            phone: shippingAddr.phone as string,
+            addressLine1: shippingAddr.addressLine1 as string,
+            addressLine2: shippingAddr.addressLine2 as string,
+            city: shippingAddr.city as string,
+            state: shippingAddr.state as string,
+            postalCode: shippingAddr.postalCode as string,
+            country: shippingAddr.country as string,
+          },
+          items: updatedOrder.items.map((item) => ({
+            productTitle: item.productTitle,
+            sku: item.sku,
+            size: item.size,
+            color: item.color,
+            unitPrice: Number(item.unitPrice),
+            quantity: item.quantity,
+            totalPrice: Number(item.totalPrice),
+          })),
+          createdAt: updatedOrder.createdAt,
+        });
+      }
+    } catch (mailErr: any) {
+      this.logger.warn(`Failed to send order payment confirmation email: ${mailErr?.message}`);
     }
   }
 
