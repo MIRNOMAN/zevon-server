@@ -1,9 +1,61 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
+
+export interface SustainabilityMetrics {
+  organicSourcingPercent: number;
+  organicSourcingDescription: string;
+  carbonOffsetPercent: number;
+  carbonOffsetDescription: string;
+  plasticFreePackagingPercent: number;
+  plasticFreePackagingDescription: string;
+  waterRecycledPercent: number;
+  waterRecycledDescription: string;
+  totalGarmentsRecycled: number;
+  activeEcoInitiativesCount: number;
+  lastUpdated: string;
+}
 
 @Injectable()
 export class SustainabilityService {
+  // Configurable metrics state with defaults
+  private metrics: SustainabilityMetrics = {
+    organicSourcingPercent: 94.2,
+    organicSourcingDescription: 'Certified GOTS organic silk & pure wool',
+    carbonOffsetPercent: 100,
+    carbonOffsetDescription: 'All DHL Air express dispatches neutralized',
+    plasticFreePackagingPercent: 100,
+    plasticFreePackagingDescription: 'Biodegradable mulberry paper & cotton garment bags',
+    waterRecycledPercent: 85,
+    waterRecycledDescription: 'Closed-loop biological effluent water treatment plants',
+    totalGarmentsRecycled: 1420,
+    activeEcoInitiativesCount: 6,
+    lastUpdated: new Date().toISOString(),
+  };
+
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Get dynamic sustainability metrics
+   */
+  async getMetrics(): Promise<SustainabilityMetrics> {
+    const storiesCount = await this.prisma.sustainabilityStory.count();
+    return {
+      ...this.metrics,
+      activeEcoInitiativesCount: Math.max(storiesCount, 4),
+    };
+  }
+
+  /**
+   * Update sustainability metrics (Admin/Manager)
+   */
+  async updateMetrics(dto: Partial<SustainabilityMetrics>): Promise<SustainabilityMetrics> {
+    this.metrics = {
+      ...this.metrics,
+      ...dto,
+      lastUpdated: new Date().toISOString(),
+    };
+    return this.metrics;
+  }
 
   /**
    * Public: Get all published sustainability stories (seeds defaults if none exist)
@@ -77,5 +129,90 @@ export class SustainabilityService {
     }
 
     return stories;
+  }
+
+  /**
+   * Admin: Create a new sustainability initiative / story
+   */
+  async createStory(data: {
+    title: string;
+    slug?: string;
+    summary: string;
+    content: string;
+    coverImageUrl: string;
+    isPublished?: boolean;
+  }) {
+    const slug =
+      data.slug?.trim() ||
+      data.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '') + `-${Date.now().toString().slice(-4)}`;
+
+    return this.prisma.sustainabilityStory.create({
+      data: {
+        title: data.title.trim(),
+        slug,
+        summary: data.summary.trim(),
+        content: data.content.trim(),
+        coverImageUrl: data.coverImageUrl.trim(),
+        isPublished: data.isPublished ?? true,
+        publishedAt: data.isPublished !== false ? new Date() : null,
+      },
+    });
+  }
+
+  /**
+   * Admin: Update sustainability story
+   */
+  async updateStory(
+    id: string,
+    data: {
+      title?: string;
+      slug?: string;
+      summary?: string;
+      content?: string;
+      coverImageUrl?: string;
+      isPublished?: boolean;
+    },
+  ) {
+    const story = await this.prisma.sustainabilityStory.findUnique({
+      where: { id },
+    });
+    if (!story) {
+      throw new NotFoundException(`Sustainability story with ID "${id}" not found`);
+    }
+
+    return this.prisma.sustainabilityStory.update({
+      where: { id },
+      data: {
+        ...(data.title ? { title: data.title.trim() } : {}),
+        ...(data.slug ? { slug: data.slug.trim() } : {}),
+        ...(data.summary ? { summary: data.summary.trim() } : {}),
+        ...(data.content ? { content: data.content.trim() } : {}),
+        ...(data.coverImageUrl ? { coverImageUrl: data.coverImageUrl.trim() } : {}),
+        ...(data.isPublished !== undefined
+          ? {
+              isPublished: data.isPublished,
+              publishedAt: data.isPublished ? new Date() : null,
+            }
+          : {}),
+      },
+    });
+  }
+
+  /**
+   * Admin: Delete sustainability story
+   */
+  async deleteStory(id: string) {
+    const story = await this.prisma.sustainabilityStory.findUnique({
+      where: { id },
+    });
+    if (!story) {
+      throw new NotFoundException(`Sustainability story with ID "${id}" not found`);
+    }
+
+    await this.prisma.sustainabilityStory.delete({ where: { id } });
+    return { success: true, message: 'Sustainability story deleted successfully' };
   }
 }

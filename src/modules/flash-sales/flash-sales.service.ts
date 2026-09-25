@@ -608,6 +608,7 @@ export class FlashSalesService {
       startTime: campaign.startTime,
       endTime: campaign.endTime,
       isActive: campaign.isActive,
+      status: countdown.status,
       countdown,
       items: formattedItems,
       createdAt: campaign.createdAt,

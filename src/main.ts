@@ -108,6 +108,7 @@ async function bootstrap() {
         },
         'JWT-auth',
       )
+      .addServer('https://api.mirnoman.com', 'Production VPS')
       .addServer(`http://localhost:${port}`, 'Local Development')
       .build();
 

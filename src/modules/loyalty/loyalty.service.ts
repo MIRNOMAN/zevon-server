@@ -299,4 +299,188 @@ export class LoyaltyService {
       reason,
     };
   }
+
+  /**
+   * Admin: Get comprehensive loyalty overview & analytics metrics.
+   */
+  async getAdminOverview() {
+    const [
+      totalMembers,
+      bronzeCount,
+      silverCount,
+      goldCount,
+      platinumCount,
+      pointsAggregate,
+      recentTransactions,
+      topMembers,
+      referralAggregate,
+    ] = await Promise.all([
+      this.prisma.loyaltyAccount.count(),
+      this.prisma.loyaltyAccount.count({ where: { tier: CustomerTier.BRONZE } }),
+      this.prisma.loyaltyAccount.count({ where: { tier: CustomerTier.SILVER } }),
+      this.prisma.loyaltyAccount.count({ where: { tier: CustomerTier.GOLD } }),
+      this.prisma.loyaltyAccount.count({ where: { tier: CustomerTier.PLATINUM } }),
+      this.prisma.loyaltyAccount.aggregate({
+        _sum: {
+          pointsBalance: true,
+          lifetimePointsEarned: true,
+          lifetimeSpent: true,
+        },
+      }),
+      this.prisma.pointTransaction.findMany({
+        take: 15,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          loyaltyAccount: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  avatarUrl: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.loyaltyAccount.findMany({
+        take: 8,
+        orderBy: { lifetimeSpent: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      }),
+      Promise.all([
+        this.prisma.referral.count(),
+        this.prisma.referral.count({ where: { status: 'REWARDED' as any } }),
+        this.prisma.referral.count({ where: { status: 'PENDING' as any } }),
+      ]),
+    ]);
+
+    const totalPointsInCirculation = pointsAggregate._sum.pointsBalance || 0;
+    const totalLifetimePoints = pointsAggregate._sum.lifetimePointsEarned || 0;
+    const totalLifetimeSpend = Number(pointsAggregate._sum.lifetimeSpent || 0);
+
+    return {
+      tierStats: {
+        totalMembers,
+        bronze: bronzeCount,
+        silver: silverCount,
+        gold: goldCount,
+        platinum: platinumCount,
+      },
+      tierConfig: this.tierConfig,
+      pointsStats: {
+        pointsInCirculation: totalPointsInCirculation,
+        pointsInCirculationBDT: totalPointsInCirculation,
+        lifetimePointsIssued: totalLifetimePoints,
+        lifetimeSpendBDT: totalLifetimeSpend,
+      },
+      referralStats: {
+        totalReferrals: referralAggregate[0],
+        rewardedReferrals: referralAggregate[1],
+        pendingReferrals: referralAggregate[2],
+        totalRewardsBDT: referralAggregate[1] * 500,
+      },
+      topMembers: topMembers.map((m) => ({
+        id: m.id,
+        userId: m.userId,
+        userName: m.user?.name || 'Unknown',
+        userEmail: m.user?.email || '',
+        userAvatar: m.user?.avatarUrl,
+        tier: m.tier,
+        pointsBalance: m.pointsBalance,
+        lifetimeSpent: Number(m.lifetimeSpent),
+        createdAt: m.createdAt,
+      })),
+      recentTransactions: recentTransactions.map((tx) => ({
+        id: tx.id,
+        userId: tx.loyaltyAccount?.userId,
+        userName: tx.loyaltyAccount?.user?.name || 'Customer',
+        userEmail: tx.loyaltyAccount?.user?.email || '',
+        amount: tx.amount,
+        type: tx.type,
+        description: tx.description,
+        referenceId: tx.referenceId,
+        createdAt: tx.createdAt,
+      })),
+    };
+  }
+
+  /**
+   * Admin: Get paginated list of customer loyalty accounts.
+   */
+  async getAdminMembers(page = 1, limit = 20, tier?: CustomerTier, search?: string) {
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.max(1, Math.min(100, Number(limit) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const where: Prisma.LoyaltyAccountWhereInput = {};
+    if (tier) {
+      where.tier = tier;
+    }
+    if (search && search.trim()) {
+      where.user = {
+        OR: [
+          { name: { contains: search.trim(), mode: 'insensitive' } },
+          { email: { contains: search.trim(), mode: 'insensitive' } },
+        ],
+      };
+    }
+
+    const [total, accounts] = await Promise.all([
+      this.prisma.loyaltyAccount.count({ where }),
+      this.prisma.loyaltyAccount.findMany({
+        where,
+        skip,
+        take: limitNum,
+        orderBy: { pointsBalance: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              avatarUrl: true,
+              role: true,
+              createdAt: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      members: accounts.map((acc) => ({
+        id: acc.id,
+        userId: acc.userId,
+        name: acc.user?.name || 'User',
+        email: acc.user?.email || '',
+        phone: acc.user?.phone || null,
+        avatarUrl: acc.user?.avatarUrl || null,
+        tier: acc.tier,
+        pointsBalance: acc.pointsBalance,
+        lifetimePointsEarned: acc.lifetimePointsEarned,
+        lifetimeSpent: Number(acc.lifetimeSpent),
+        createdAt: acc.createdAt,
+        updatedAt: acc.updatedAt,
+      })),
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    };
+  }
 }

@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Body,
+  Query,
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
@@ -67,5 +68,32 @@ export class LoyaltyController {
     @Body() dto: AdjustPointsDto,
   ) {
     return this.loyaltyService.adjustPoints(adminUserId, dto);
+  }
+
+  @Get('admin/overview')
+  @Roles('ADMIN', 'MANAGER')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Loyalty overview analytics retrieved successfully')
+  @ApiOperation({
+    summary: 'Get full tier member counts, points in circulation, top customers, and recent point ledger (Admin/Manager)',
+  })
+  getAdminOverview() {
+    return this.loyaltyService.getAdminOverview();
+  }
+
+  @Get('admin/members')
+  @Roles('ADMIN', 'MANAGER')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Loyalty members list retrieved successfully')
+  @ApiOperation({
+    summary: 'Get paginated list of loyalty members with tier filtering and search (Admin/Manager)',
+  })
+  getAdminMembers(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('tier') tier?: any,
+    @Query('search') search?: string,
+  ) {
+    return this.loyaltyService.getAdminMembers(page, limit, tier, search);
   }
 }
